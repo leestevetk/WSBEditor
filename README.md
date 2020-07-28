@@ -8,6 +8,14 @@ WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/wind
 - Runs directly from browser
 - No installation required
 
+## Compatibility
+
+WSBEditor creates Windows Sandbox configuration files, which are compatible with any system:
+- Running Windows 10 **build 18342** or later; and
+- With **Windows Sandbox feature** enabled
+
+WSBEditor itself is a web application - it may run on **any browser** (including on your phone!!) but you will need a PC to use the configuration file.
+
 ## What is Windows Sandbox?
 
 Windows 10 includes a fu
