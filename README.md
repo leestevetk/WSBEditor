@@ -16,20 +16,6 @@ WSBEditor creates Windows Sandbox configuration files, which are compatible with
 
 WSBEditor itself is a web application - it may run on **any browser** (including on your phone!!) but you will need a PC to use the configuration file.
 
-## What is Windows Sandbox?
-
-Windows 10 includes a fu
-
-```markdown
-Syntax highlighted code block
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
 ## Support or Contact
 
 WSBEditor is a work in progress (actually my little attempt at coding while staying-at-home during the [COVID-19 pandemic](https://en.wikipedia.org/wiki/COVID-19_pandemic)).
