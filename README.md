@@ -10,7 +10,7 @@ WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/wind
 
 ## How to Use
 
-You may **[launch the latest version of WSBEditor](https://leesteve.tk/WSBEditor/WSBEditor.html directly)** (recommended) or you may download WSBEditor for offline use.
+You may **[launch the latest version of WSBEditor directly](https://leesteve.tk/WSBEditor/WSBEditor.html)** (recommended) or you may download WSBEditor for offline use.
 
 ## Compatibility
 
