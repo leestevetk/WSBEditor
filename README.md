@@ -22,10 +22,17 @@ Syntax highlighted code block
 
 For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
 
-### Jekyll Themes
+## Support or Contact
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/leestevetk/WSBHelper/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+WSBEditor is a work in progress (and indeed, my attempt at coding during the COVID-19 pandemic).
+Please feel free to support the project or report any issues at our [GitHub page](https://github.com/leestevetk/WSBEditor).
 
-### Support or Contact
+## Licence
 
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+Copyright (C) 2020 Steve's Toolkit
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+
