@@ -2,7 +2,7 @@
 <html>
 <head>
 <!--
-    WSBEditor 0.1.0 (20200728)
+    WSBEditor 0.1.1 (20200728)
     Copyright (C) 2020  Steve's Toolkit
     Website: http://leesteve.tk/WSBEditor/
     GitHub: https://github.com/leestevetk/WSBEditor/
@@ -24,14 +24,33 @@
 <title>WSBEditor by Steve's Toolkit</title>
 <script type="text/javascript">
     var CurrentTemplateID = 0;
+    var CurrentTemplateName, CurrentTemplateFilename = "";
+    
+    // Editor Handlers
     function Editor_Check() {
+    	function IndicateErrRow(RowID) {
+    		document.getElementById('EditorRow_'+RowID).setAttribute("class", "EditorRowErr");
+    	}
         var ErrorMsg = "";
-        if(document.querySelectorAll("input[name=Editor_Input_MappedFolders]:checked").length > 0) {
+        var Filename = document.getElementById('Editor_Input_Filename').value;
+        var EditorRows = document.getElementById('Editor').getElementsByTagName("tr");
+        for(i = 0; i < EditorRows.length; i++) {
+        	EditorRows[i].setAttribute("class","");
+        }
+        if(Filename == "") {
+        	document.getElementById('Editor_Input_Filename').value = CurrentTemplateFilename;
+        } else {
+        	if(Filename.toUpperCase().endsWith(".WSB") == false) {
+        		document.getElementById('Editor_Input_Filename').value = Filename+".wsb";
+        	}
+        }
+        if(document.querySelectorAll("input[name=Editor_Input_MappedUserFolders]:checked,input[name=Editor_Input_MappedUserFolders]:indeterminate").length > 0) {
             document.getElementById('Editor_Input_HomeDirectory').required = true;
             document.getElementById('Editor_Input_HomeDirectory').setAttribute("placeholder","Required");
             var HomeDirectoryPath = document.getElementById('Editor_Input_HomeDirectory').value;
             if(HomeDirectoryPath == "") {
                 ErrorMsg = "Home Directory is required.";
+                IndicateErrRow("MappedUserFolders");
             } else {
             }
         } else {
@@ -52,6 +71,183 @@
             return false;
         }
     }
+    function ApplyTemplate(TemplateID) {
+    	// Preserve Selected Inputs
+    	var PFilename = document.getElementById('Editor_Input_Filename').value;
+    	var PHomeDirectory = document.getElementById('Editor_Input_HomeDirectory').value;
+    	// Reset Form
+        document.getElementById('Editor').reset();
+        var Reset_Tristates = document.getElementsByClassName("TristateCheckbox");
+        for(i = 0; i < Reset_Tristates.length; i++) {
+            Tristate_Edit(Reset_Tristates[i].id, 0);
+        }
+        // Restore Preserved Inputs
+        if(PFilename.toUpperCase() == CurrentTemplateFilename.toUpperCase()) {
+        	document.getElementById('Editor_Input_Filename').value = "";
+        } else {
+        	document.getElementById('Editor_Input_Filename').value = PFilename;
+        }
+        document.getElementById('Editor_Input_HomeDirectory').value = PHomeDirectory;
+        // Apply Template
+        switch(TemplateID) {
+            case 1:
+                CurrentTemplateName = "More Secure (without Networking)";
+                SetEditorInput("ProtectedClient",true);
+                break;
+            case 2:
+                CurrentTemplateName = "More Secure (with Networking)";
+                SetEditorInput("Networking",true);
+                SetEditorInput("ProtectedClient",true);
+                break;
+            case 3:
+                CurrentTemplateName = "More Functions";
+                SetEditorInput("vGPU",true);
+                SetEditorInput("Networking",true);
+                SetEditorInput("AudioInput",true);
+                SetEditorInput("VideoInput",true);
+                SetEditorInput("PrinterRedirection",true);
+                SetEditorInput("ClipboardRedirection",true);
+                break;
+            case 4:
+                CurrentTemplateName = "Test Downloads";
+                SetEditorInput("Networking",true);
+                SetEditorInput("AudioInput",true);
+                SetEditorInput("ClipboardRedirection",true);
+                SetEditorInput("MappedUserFolders_Downloads",1);
+                break;
+            default:
+                CurrentTemplateName = "Windows Default";
+                SetEditorInput("Networking",true);
+                SetEditorInput("AudioInput",true);
+                SetEditorInput("ClipboardRedirection",true);
+                break;
+        }
+        document.getElementById('Editor_TemplateName').innerHTML = CurrentTemplateName;
+        document.getElementById('FloatBox_Reset_TemplateName').innerHTML = CurrentTemplateName;
+        CurrentTemplateID = TemplateID;
+        CurrentTemplateFilename = "Sandbox ("+CurrentTemplateName+").wsb";
+        document.getElementById('Editor_Input_Filename').setAttribute("placeholder",CurrentTemplateFilename);
+        Editor_Check();
+    }
+    function SetEditorInput(SVar,SValue) {
+        if(document.getElementById('Editor_Input_'+SVar).type == "checkbox") {
+            if(document.getElementById('Editor_Input_'+SVar).className.search("TristateCheckbox") == -1) {
+            	document.getElementById('Editor_Input_'+SVar).checked = SValue;
+            } else {
+            	Tristate_Edit('Editor_Input_'+SVar,SValue);
+            }
+        } else {
+            document.getElementById('Editor_Input_'+SVar).value = SValue;
+        }
+    }
+    
+    // WSB Handlers
+    function LoadWSB(LInput) {
+        var WSBXML = new DOMParser().parseFromString(LInput,"text/xml").getElementsByTagName("Configuration")[0];
+        console.log(typeof WSBXML);
+        if(WSBXML === undefined) {
+            ShowErrorBox("Invalid WSB file");
+        } else {
+            var WSBContent;
+            if(WSBXML.getElementsByTagName("vGPU")[0] != "Enable") {
+                SetEditorInput("vGPU",true);
+            }
+        }
+    }
+    function GenerateWSB() {
+        var WSBXML = "<Configuration>%0D%0A";
+        function EnableOrDisable(ETag) {
+            if(document.getElementById('Editor_Input_'+ETag).checked == true) {
+                WSBXML += "    <"+ETag+">Enable</"+ETag+">%0D%0A";
+            } else {
+                WSBXML += "    <"+ETag+">Disable</"+ETag+">%0D%0A";
+            }
+        }
+        function DefaultOrDisable(DTag) {
+            if(document.getElementById('Editor_Input_'+DTag).checked == true) {
+                WSBXML += "    <"+DTag+">Default</"+DTag+">%0D%0A";
+            } else {
+                WSBXML += "    <"+DTag+">Disable</"+DTag+">%0D%0A";
+            }
+        }
+        EnableOrDisable("vGPU");
+        DefaultOrDisable("Networking");
+        EnableOrDisable("AudioInput");
+        EnableOrDisable("VideoInput");
+        EnableOrDisable("PrinterRedirection");
+        DefaultOrDisable("ClipboardRedirection");
+        EnableOrDisable("ProtectedClient");
+        // MemoryInMB
+        var MemoryInMB = document.getElementById('Editor_Input_MemoryInMB').value;
+        if(!(MemoryInMB == 0 || MemoryInMB == null || MemoryInMB == "")) {
+            WSBXML += "    <MemoryInMB>"+MemoryInMB+"</MemoryInMB>%0D%0A";
+        }
+        // LogonCommand
+        var LogonCommandXML = "";
+        var LogonCommand = document.getElementById('Editor_Input_LogonCommand').value.split("\n");
+        for(var i = 0; i < LogonCommand.length; i++) {
+            if(LogonCommand[i] != "") {
+                LogonCommandXML += "        <Command>"+LogonCommand[i]+"</Command>%0D%0A";
+            }
+        }
+        if(LogonCommandXML != "") {
+            WSBXML += "    <LogonCommand>%0D%0A"+LogonCommandXML+"    </LogonCommand>%0D%0A";
+        }
+        // MappedFolders
+        var MappedFoldersXML = "";
+        var MappedUserFolders = document.querySelectorAll("input[name=Editor_Input_MappedUserFolders]:checked,input[name=Editor_Input_MappedUserFolders]:indeterminate");
+		for(var i=0; i < MappedUserFolders.length; i++) {
+			MappedFoldersXML += "        <MappedFolder>%0D%0A            <HostFolder>"+document.getElementById('Editor_Input_HomeDirectory').value+"\\"+MappedUserFolders[i].value+"</HostFolder>%0D%0A            <SandboxFolder>C:\\Users\\WDAGUtilityAccount\\"+MappedUserFolders[i].value+"</SandboxFolder>%0D%0A            <ReadOnly>"+MappedUserFolders[i].indeterminate+"</ReadOnly>%0D%0A        </MappedFolder>%0D%0A";
+		}
+        if(MappedFoldersXML != "") {
+            WSBXML += "    <MappedFolders>%0D%0A"+MappedFoldersXML+"    </MappedFolders>%0D%0A";
+        }
+        // End
+        WSBXML += "</Configuration>";
+        return WSBXML;
+    }
+    function DownloadFile() {
+        if(Editor_Check() == true) {
+            var FileContainer = document.createElement("a");
+            FileContainer.href = 'data:text/xml;charset=utf-8,'+GenerateWSB();
+            FileContainer.setAttribute("Download", document.getElementById('Editor_Input_Filename').value);
+            FileContainer.style.display = 'none';
+            document.body.appendChild(FileContainer);
+            FileContainer.click();
+            document.body.removeChild(FileContainer);
+        }
+    }
+    
+    // Tristate Checkbox Handlers
+    var Tristate_Status = new Array();
+    function Tristate_Edit(Tid,TState) {
+        switch(TState) {
+            case 1:
+                document.getElementById(Tid).checked = true;
+                document.getElementById(Tid).indeterminate = false;
+                Tristate_Status[Tid] = 1;
+                var TNote = "Read/write";
+                break;
+            case 2:
+                document.getElementById(Tid).checked = true;
+                document.getElementById(Tid).indeterminate = true;
+                Tristate_Status[Tid] = 2;
+                var TNote = "Read-only";
+                break;
+            default:
+                document.getElementById(Tid).checked = false;
+                document.getElementById(Tid).indeterminate = false;
+                Tristate_Status[Tid] = 0;
+                var TNote = "Disabled";
+                break;
+        }
+        document.getElementById(Tid+'_Notes').innerHTML = TNote;
+    }
+    function Tristate_Next(Tid) {
+        Tristate_Edit(Tid,Tristate_Status[Tid]+1);
+    }
+    
+    // FloatBox Handlers
     function ShowFloatBox(TargetID) {
         document.getElementById('FloatBoxBackground').setAttribute("class","FloatBoxBackground");
         document.getElementById("FloatBox_"+TargetID).setAttribute("class","FloatBox");
@@ -92,131 +288,16 @@
         HideFloatBox("Reset");
         ApplyTemplate(CurrentTemplateID);
     }
-    function ApplyTemplate(TemplateID) {
-        document.getElementById('Editor').reset();
-        var TemplateName;
-        switch(TemplateID) {
-            case 1:
-                TemplateName = "More Secure (without Networking)";
-                SetEditorInput("ProtectedClient",true);
-                break;
-            case 2:
-                TemplateName = "More Secure (with Networking)";
-                SetEditorInput("Networking",true);
-                SetEditorInput("ProtectedClient",true);
-                break;
-            case 3:
-                TemplateName = "More Functions";
-                SetEditorInput("vGPU",true);
-                SetEditorInput("Networking",true);
-                SetEditorInput("AudioInput",true);
-                SetEditorInput("VideoInput",true);
-                SetEditorInput("PrinterRedirection",true);
-                SetEditorInput("ClipboardRedirection",true);
-                break;
-            case 4:
-                TemplateName = "Test Downloads";
-                SetEditorInput("Networking",true);
-                SetEditorInput("AudioInput",true);
-                SetEditorInput("ClipboardRedirection",true);
-                SetEditorInput("MappedFolders_Downloads",true);
-                break;
-            default:
-                TemplateName = "Windows Default";
-                SetEditorInput("Networking",true);
-                SetEditorInput("AudioInput",true);
-                SetEditorInput("ClipboardRedirection",true);
-                break;
-        }
-        document.getElementById('Editor_TemplateName').innerHTML = TemplateName;
-        document.getElementById('FloatBox_Reset_TemplateName').innerHTML = TemplateName;
-        CurrentTemplateID = TemplateID;
-        Editor_Check();
-    }
-    function SetEditorInput(SVar,SValue) {
-        if(document.getElementById('Editor_Input_'+SVar).type == "checkbox") {
-            document.getElementById('Editor_Input_'+SVar).checked = SValue;
-        } else {
-            document.getElementById('Editor_Input_'+SVar).value = SValue;
-        }
-    }
-    function LoadWSB(LInput) {
-        var WSBXML = new DOMParser().parseFromString(LInput,"text/xml").getElementsByTagName("Configuration")[0];
-        console.log(typeof WSBXML);
-        if(WSBXML === undefined) {
-            ShowErrorBox("Invalid WSB file");
-        } else {
-            var WSBContent;
-            if(WSBXML.getElementsByTagName("vGPU")[0] != "Enable") {
-                SetEditorInput("vGPU",true);
-            }
-        }
-    }
-    function GenerateWSB() {
-        var WSBXML = "<Configuration>";
-        function EnableOrDisable(ETag) {
-            if(document.getElementById('Editor_Input_'+ETag).checked == true) {
-                WSBXML += "  <"+ETag+">Enable</"+ETag+">";
-            } else {
-                WSBXML += "  <"+ETag+">Disable</"+ETag+">";
-            }
-        }
-        function DefaultOrDisable(DTag) {
-            if(document.getElementById('Editor_Input_'+DTag).checked == true) {
-                WSBXML += "  <"+DTag+">Default</"+DTag+">";
-            } else {
-                WSBXML += "  <"+DTag+">Disable</"+DTag+">";
-            }
-        }
-        EnableOrDisable("vGPU");
-        DefaultOrDisable("Networking");
-        EnableOrDisable("AudioInput");
-        EnableOrDisable("VideoInput");
-        EnableOrDisable("PrinterRedirection");
-        DefaultOrDisable("ClipboardRedirection");
-        EnableOrDisable("ProtectedClient");
-        // MemoryInMB
-        var MemoryInMB = document.getElementById('Editor_Input_MemoryInMB').value;
-        if(!(MemoryInMB == 0 || MemoryInMB == null || MemoryInMB == "")) {
-            WSBXML += "  <MemoryInMB>"+MemoryInMB+"</MemoryInMB>";
-        }
-        // LogonCommand
-        var LogonCommandXML = "";
-        var LogonCommand = document.getElementById('Editor_Input_LogonCommand').value.split("\n");
-        for(var i = 0; i < LogonCommand.length; i++) {
-            if(LogonCommand[i] != "") {
-                LogonCommandXML += "    <Command>"+LogonCommand[i]+"</Command>";
-            }
-        }
-        if(LogonCommandXML != "") {
-            WSBXML += "  <LogonCommand>"+LogonCommandXML+"  </LogonCommand>";
-        }
-        // MappedFolders
-        var MappedHomeFolders = document.querySelectorAll("input[name=Editor_Input_MappedFolders]:checked");
-        if(MappedHomeFolders.length > 0) {
-            WSBXML += "  <MappedFolders>";
-            for(var i=0; i < MappedHomeFolders.length; i++) {
-                WSBXML += "    <HostFolder>"+document.getElementById('Editor_Input_HomeDirectory').value+"\\"+MappedHomeFolders[i].value+"</HostFolder><SandboxFolder>C:\\Users\\WDAGUtilityAccount\\"+MappedHomeFolders[i].value+"</SandboxFolder>";
-            }
-            WSBXML += "  </MappedFolders>";
-        }
-        WSBXML += "</Configuration>";
-        return WSBXML;
-    }
-    function DownloadFile() {
-        if(Editor_Check() == true) {
-            var FileContainer = document.createElement("a");
-            FileContainer.href = 'data:text/xml;charset=utf-8,'+GenerateWSB();
-            FileContainer.setAttribute("Download", "Sandbox.wsb");
-            FileContainer.style.display = 'none';
-            document.body.appendChild(FileContainer);
-            FileContainer.click();
-            document.body.removeChild(FileContainer);
-        }
-    }
+    
     function OnLoad() {
         // Test JS
         document.getElementById('FloatBox_Welcome_SubmitButton').disabled = false;
+        // Set Tristate Checkbox Handler
+        var Tristate_Checkboxes = document.getElementsByClassName("TristateCheckbox");
+        for (i = 0; i < Tristate_Checkboxes.length; i++) {
+            Tristate_Checkboxes[i].addEventListener('change', function() { Tristate_Next(this.id) });
+            Tristate_Edit(Tristate_Checkboxes[i].id,0);
+        }
         // Set Onchange and Oninput Action for Editor
         var Editor_Inputs = document.getElementById('Editor').querySelectorAll("input,select,textarea");
         for (i = 0; i < Editor_Inputs.length; i++) {
@@ -301,20 +382,23 @@
         animation-delay: 10s;
         animation-fill-mode: forwards;
     }
-    table.EditorSection {
+    table.EditorTable {
         padding: 20px 10px 100px 10px;
         max-width: 800px;
         margin-left: auto;
         margin-right: auto;
     }
-    table.EditorSection td {
+    table.EditorTable td {
         padding: 10px;
         vertical-align: top;
     }
-    table.EditorSection td:nth-child(1) {
+    table.EditorTable td:nth-child(1) {
         font-weight: bold;
         text-align: right;
         width: 20%;
+    }
+    table.EditorTable tr.EditorRowErr td:nth-child(1) {
+    	color: #ff1919;
     }
     table.Footer, table.FooterRed {
         position: fixed;
@@ -349,14 +433,22 @@
     input[type=number] {
         text-align: right;
         width: 100px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+    input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
     }
     input[type=text] {
         width: 100%;
     }
-    input[type="text"]:not([disabled]):hover, input[type="text"]:not([disabled]):focus, input[type="number"]:not([disabled]):hover, input[type="number"]:not([disabled]):focus {
+    input[type="text"]:enabled:hover, input[type="text"]:enabled:focus, input[type="number"]:enabled:hover, input[type="number"]:enabled:focus {
         border-color: #222;
     }
-    input[type="text"]:not([disabled]):invalid, input[type="number"]:not([disabled]):invalid {
+    input[type="text"]:enabled:invalid, input[type="number"]:enabled:invalid {
         border-color: #ff1919;
         background-color: rgba(234, 143, 143, 0.51);
         color: #222;
@@ -371,7 +463,7 @@
         background-color: #EEE;
         padding: 5px;
     }
-    textarea:not([disabled]):hover, textarea:not([disabled]):focus {
+    textarea:enabled:hover, textarea:enabled:focus {
         border-color: #222;
         background-color: #FFF;
     }
@@ -382,13 +474,16 @@
         width: 100px;
         height: 35px;
         margin: 2px 5px 2px 0px;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
     }
     input[type="button"] {
         background-color: #CCC;
         color: #444;
         border: 1px #AAA solid;
     }
-    input[type="button"]:not([disabled]):hover, input[type="button"]:not([disabled]):active {
+    input[type="button"]:enabled:hover, input[type="button"]:enabled:active {
         background-color: #AAA;
         box-shadow: 0px 0px 3px #888;
         color: #FFF;
@@ -398,7 +493,7 @@
         color: #FFF;
         border: 1px #0066CC solid;
     }
-    input[type="submit"]:not([disabled]):hover, input[type="submit"]:not([disabled]):active {
+    input[type="submit"]:enabled:hover, input[type="submit"]:enabled:active {
         background-color: #0066CC;
         box-shadow: 0px 0px 3px #888;
     }
@@ -414,10 +509,10 @@
         padding: 10px 20px;
         background-color: transparent;
     }
-    input.TextRadio:not([disabled]) + label:hover {
+    input.TextRadio:enabled + label:hover {
         background-color: #DDD;
     }
-    input.TextRadio:not([disabled]):checked + label {
+    input.TextRadio:enabled:checked + label {
         background-color: #b5d7fb;
     }
     input.TextRadio:disabled + label {
@@ -502,7 +597,14 @@
         background-color: #EEE;
         border: 1px #AAA solid;
     }
-    label.CheckboxContainer span.Checkmark:after {
+    label.CheckboxContainer input[type=checkbox]:enabled:hover ~ span.Checkmark {
+        background-color: #CCC;
+    }
+    label.CheckboxContainer input[type=checkbox]:enabled:checked ~ span.Checkmark, label.CheckboxContainer input[type=checkbox]:enabled:indeterminate ~ span.Checkmark {
+        background-color: #2196F3;
+        border: 1px #0066CC solid;
+    }
+    label.CheckboxContainer input[type=checkbox]:not(:indeterminate) ~ span.Checkmark:after {
         content: "";
         position: absolute;
         display: block;
@@ -514,12 +616,15 @@
         border-width: 0 3px 3px 0;
         transform: rotate(45deg);
     }
-    label.CheckboxContainer:not([disabled]):hover span.Checkmark {
-        background-color: #CCC;
-    }
-    label.CheckboxContainer input[type=checkbox]:not([disabled]):checked ~ span.Checkmark {
-        background-color: #2196F3;
-        border: 1px #0066CC solid;
+    label.CheckboxContainer input[type=checkbox]:indeterminate ~ span.Checkmark:after {
+        content: "";
+        position: absolute;
+        display: block;
+        left: 5px;
+        top: 10px;
+        width: 15px;
+        height: 5px;
+        background-color: #FFF;
     }
     .EditorNotes {
         margin: 5px 0px;
@@ -566,21 +671,40 @@
         font-weight: bold;
     }
     @media only screen and (min-width: 600px) {
-        
+		table.EditorTable td {
+			padding: 10px 25px;
+		}
+		table.EditorTable td:nth-child(1) {
+			border-right: 2px solid #CCC;
+			color: #666;
+		}
+		table.EditorTable tr:hover:not(.EditorRowErr) td:nth-child(1) {
+			border-right: 2px solid #444;
+			color: #000;
+		}
+		table.EditorTable tr.EditorRowErr td:nth-child(1) {
+			border-right: 2px solid #ff1919;
+		}
     }
 </style>
 </head>
 <body onload="javascript:OnLoad()">
     <form id="Editor" action="javascript:DownloadFile()">
-        <table class="EditorSection">
-            <tr>
+        <table class="EditorTable">
+            <tr id="EditorRow_Filename">
+                <td>Filename</td>
+                <td>
+                    <input type="text" id="Editor_Input_Filename" />
+                </td>
+            </tr>
+            <tr id="EditorRow_Template">
                 <td>Template</td>
                 <td>
                     <span id="Editor_TemplateName"></span><br />
                     <input type="button" value="Change" onclick="javascript:ShowFloatBox('Templates')" /><input type="button" value="Reset" onclick="javascript:ShowFloatBox('Reset')" />
                 </td>
             </tr>
-            <tr>
+            <tr id="EditorRow_Graphics">
                 <td>Graphics</td>
                 <td>
                     <label class="CheckboxContainer">
@@ -591,24 +715,25 @@
                     </label>
                 </td>
             </tr>
-            <tr>
+            <tr id="EditorRow_Memory">
                 <td>Memory</td>
                 <td>
                     <input type="number" id="Editor_Input_MemoryInMB" placeholder="Auto" min="1" /> MB
+                    <p class="EditorNotes">Maximum Sandbox memory usage (actual memory usage may exceed this amount if needed to boot the Sandbox).</p>
                 </td>
             </tr>
-            <tr>
+            <tr id="EditorRow_Network">
                 <td>Network</td>
                 <td>
                     <label class="CheckboxContainer">
                         <input type="Checkbox" id="Editor_Input_Networking" />
                         <span class="Checkmark"></span>
-                        Connect to Network
+                        Connect Sandbox to Network
                         <p class="EditorNotes">Enable networking in Sandbox via Host's default NAT switch.</p>
                     </label>
                 </td>
             </tr>
-            <tr>
+            <tr id="EditorRow_SharedResources">
                 <td>Shared Resources</td>
                 <td>
                     Sandbox will share Host's:<br /><br />
@@ -635,40 +760,45 @@
                     </label>
                 </td>
             </tr>
-            <tr>
-                <td>Mapped Folders</td>
+            <tr id="EditorRow_MappedUserFolders">
+                <td>Mapped User Folders</td>
                 <td>
                     Home Directory:<br /><input type="text" id="Editor_Input_HomeDirectory" />
-                    <p class="EditorNotes">By default, your home directory is at C:\Users\{Your Username}.<br />To check your home directory, open Command Prompt and type "echo %userprofile%"</p>
+                    <p class="EditorNotes">By default, your home directory is "C:\Users\{Your Username}".<br />To check, open Command Prompt and type "echo %userprofile%".</p>
                     <br />
                     <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Desktop" value="Desktop" />
+                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Desktop" value="Desktop" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Desktop
+                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Desktop_Notes"></p>
                     </label>
                     <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Downloads" value="Downloads" />
+                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Downloads" value="Downloads" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Downloads
+                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Downloads_Notes"></p>
                     </label>
                     <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Documents" value="Documents" />
+                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Documents" value="Documents" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Documents
+                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Documents_Notes"></p>
                     </label>
                     <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Pictures" value="Pictures" />
+                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Pictures" value="Pictures" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Pictures
+                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Pictures_Notes"></p>
                     </label>
                     <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Music" value="Music" />
+                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Music" value="Music" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Music
+                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Music_Notes"></p>
                     </label>
                 </td>
             </tr>
-            <tr>
+            <tr id="EditorRow_Security">
                 <td>Security</td>
                 <td>
                     <label class="CheckboxContainer">
@@ -679,10 +809,11 @@
                     </label>
                 </td>
             </tr>
-            <tr>
-                <td>Logon Command</td>
+            <tr id="EditorRow_LogonCommands">
+                <td>Logon Commands</td>
                 <td>
                     <textarea id="Editor_Input_LogonCommand"></textarea>
+                    <p class="EditorNotes">These commands will automatically be invoked in the Sandbox as user after log-on.</p>
                 </td>
             </tr>
         </table>
