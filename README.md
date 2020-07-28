@@ -11,11 +11,12 @@ WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/wind
 ## How to Use
 
 ### Option 1: Launch Directly (Recommended)
-You may **[launch the latest version of WSBEditor directly](https://leesteve.tk/WSBEditor/WSBEditor.html)**.
+You may **[launch the latest version of WSBEditor directly from here](https://leesteve.tk/WSBEditor/WSBEditor.html)**.
 
 ### Option 2: Download WSBEditor
-You may also download WSBEditor onto your device.
-This is useful if you want to use WSBEditor while you are offline.  WSBEditor uses only plain vanilla JavaScript (i.e. no jQuery or other fancy JavaScript frameworks/libraries).  In short, a **downloaded copy of WSBEditor works perfectly offline**, except that you may see old-school Arial rather than my favourite [Ubuntu font](https://design.ubuntu.com/font/). 
+You may also **[download WSBEditor onto your device](https://leesteve.tk/WSBEditor/releases/WSBEditor-0.1.0.zip)**.  This is particularly useful if you want to use WSBEditor while you are offline.
+
+WSBEditor uses only plain vanilla JavaScript (i.e. no jQuery or other fancy JavaScript frameworks/libraries).  In short, a **downloaded copy of WSBEditor works perfectly offline**, except that you may see old-school Arial rather than my favourite [Ubuntu font](https://design.ubuntu.com/font/). 
 
 ## Compatibility
 
