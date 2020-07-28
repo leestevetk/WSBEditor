@@ -24,7 +24,7 @@ For more details see [GitHub Flavored Markdown](https://guides.github.com/featur
 
 ## Support or Contact
 
-WSBEditor is a work in progress (actually my little attempt at coding while staying-at-home during the COVID-19 pandemic).
+WSBEditor is a work in progress (actually my little attempt at coding while staying-at-home during the [COVID-19 pandemic](https://en.wikipedia.org/wiki/COVID-19_pandemic)).
 Please feel free to support the project or report any issues at our [GitHub page](https://github.com/leestevetk/WSBEditor).
 
 ## Licence
