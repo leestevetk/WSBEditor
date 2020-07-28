@@ -8,6 +8,10 @@ WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/wind
 - Runs directly from browser
 - No installation required
 
+## How to Use
+
+You may **[launch the latest version of WSBEditor](https://leesteve.tk/WSBEditor/WSBEditor.html)** directly (recommended) or you may download WSBEditor for offline use.
+
 ## Compatibility
 
 WSBEditor creates Windows Sandbox configuration files, which are compatible with any system:
