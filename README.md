@@ -4,13 +4,18 @@
 
 WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-overview) configuration file (*.wsb) editor.
 
-- Lightweight (_Single File Only_)
+- Lightweight (_everything in one file_)
 - Runs directly from browser
 - No installation required
 
 ## How to Use
 
-You may **[launch the latest version of WSBEditor directly](https://leesteve.tk/WSBEditor/WSBEditor.html)** (recommended) or you may download WSBEditor for offline use.
+### Option 1: Launch Directly (Recommended)
+You may **[launch the latest version of WSBEditor directly](https://leesteve.tk/WSBEditor/WSBEditor.html)**.
+
+### Option 2: Download WSBEditor
+You may also download WSBEditor onto your device.
+This is useful if you want to use WSBEditor while you are offline.  WSBEditor uses only plain vanilla JavaScript (i.e. no jQuery or other fancy JavaScript frameworks/libraries).  In short, a **downloaded copy of WSBEditor works perfectly offline**, except that you may see old-school Arial rather than my favourite [Ubuntu font](https://design.ubuntu.com/font/). 
 
 ## Compatibility
 
