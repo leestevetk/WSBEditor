@@ -1,0 +1,738 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<!--
+    WSBEditor 0.1.0 (20200728)
+    Copyright (C) 2020  Steve's Toolkit
+    Website: http://leesteve.tk/WSBEditor/
+    GitHub: https://github.com/leestevetk/WSBEditor/
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"><link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu">
+<title>WSBEditor by Steve's Toolkit</title>
+<script type="text/javascript">
+    var CurrentTemplateID = 0;
+    function Editor_Check() {
+        var ErrorMsg = "";
+        if(document.querySelectorAll("input[name=Editor_Input_MappedFolders]:checked").length > 0) {
+            document.getElementById('Editor_Input_HomeDirectory').required = true;
+            document.getElementById('Editor_Input_HomeDirectory').setAttribute("placeholder","Required");
+            var HomeDirectoryPath = document.getElementById('Editor_Input_HomeDirectory').value;
+            if(HomeDirectoryPath == "") {
+                ErrorMsg = "Home Directory is required.";
+            } else {
+            }
+        } else {
+            document.getElementById('Editor_Input_HomeDirectory').required = false;
+            document.getElementById('Editor_Input_HomeDirectory').setAttribute("placeholder","Home Directory");
+        }
+        if(document.getElementById('Editor_Input_MemoryInMB').checkValidity() == false) {
+            document.getElementById('Editor_Input_MemoryInMB').value = "";
+        }
+        document.getElementById('Editor_Footer_Message').innerHTML = ErrorMsg;
+        if(document.getElementById('Editor').checkValidity() == true && ErrorMsg == "") {
+            document.getElementById('Editor_Footer_DownloadButton').disabled = false;
+            document.getElementById('Editor_Footer').setAttribute("class", "Footer");
+            return true;
+        } else {
+            document.getElementById('Editor_Footer_DownloadButton').disabled = true;
+            document.getElementById('Editor_Footer').setAttribute("class", "FooterRed");
+            return false;
+        }
+    }
+    function ShowFloatBox(TargetID) {
+        document.getElementById('FloatBoxBackground').setAttribute("class","FloatBoxBackground");
+        document.getElementById("FloatBox_"+TargetID).setAttribute("class","FloatBox");
+    }
+    function HideFloatBox(TargetID) {
+        document.getElementById('FloatBoxBackground').setAttribute("class","FloatBoxBackgroundHidden");
+        document.getElementById("FloatBox_"+TargetID).setAttribute("class","FloatBoxHidden");
+    }
+    function FloatBox_Templates_Update() {
+        switch (parseInt(document.querySelector('input[name=FloatBox_Templates_Template]:checked').value)) {
+            case 1:
+                NewText = "Enables all security options and disables all potentially unsafe functionalities. Networking functionalities are also disabled.";
+                break;
+            case 2:
+                NewText = "Enables all security options and disables all potentially unsafe functionalities, but enables networking functionalities.";
+                break;
+            case 3:
+                NewText = "Enables all available functions.";
+                break;
+            case 4:
+                NewText = "Allows you to test downloaded files/programs.  This template shares the Host's Downloads folder with the Sandbox.";
+                break;
+            default:
+                NewText = "Uses Windows\'s default options.";
+        }
+        document.getElementById('FloatBox_Templates_Description').innerHTML = NewText;
+    }
+    function FloatBox_Templates_Submit() {
+        ApplyTemplate(parseInt(document.querySelector('input[name=FloatBox_Templates_Template]:checked').value));
+        HideFloatBox("Templates");
+    }
+    function FloatBox_Templates_Cancel() {
+        HideFloatBox("Templates");
+        document.getElementById('FloatBox_Templates_Template_'+CurrentTemplateID).checked = true;
+        FloatBox_Templates_Update();
+    }
+    function FloatBox_Reset_Submit() {
+        HideFloatBox("Reset");
+        ApplyTemplate(CurrentTemplateID);
+    }
+    function ApplyTemplate(TemplateID) {
+        document.getElementById('Editor').reset();
+        var TemplateName;
+        switch(TemplateID) {
+            case 1:
+                TemplateName = "More Secure (without Networking)";
+                SetEditorInput("ProtectedClient",true);
+                break;
+            case 2:
+                TemplateName = "More Secure (with Networking)";
+                SetEditorInput("Networking",true);
+                SetEditorInput("ProtectedClient",true);
+                break;
+            case 3:
+                TemplateName = "More Functions";
+                SetEditorInput("vGPU",true);
+                SetEditorInput("Networking",true);
+                SetEditorInput("AudioInput",true);
+                SetEditorInput("VideoInput",true);
+                SetEditorInput("PrinterRedirection",true);
+                SetEditorInput("ClipboardRedirection",true);
+                break;
+            case 4:
+                TemplateName = "Test Downloads";
+                SetEditorInput("Networking",true);
+                SetEditorInput("AudioInput",true);
+                SetEditorInput("ClipboardRedirection",true);
+                SetEditorInput("MappedFolders_Downloads",true);
+                break;
+            default:
+                TemplateName = "Windows Default";
+                SetEditorInput("Networking",true);
+                SetEditorInput("AudioInput",true);
+                SetEditorInput("ClipboardRedirection",true);
+                break;
+        }
+        document.getElementById('Editor_TemplateName').innerHTML = TemplateName;
+        document.getElementById('FloatBox_Reset_TemplateName').innerHTML = TemplateName;
+        CurrentTemplateID = TemplateID;
+        Editor_Check();
+    }
+    function SetEditorInput(SVar,SValue) {
+        if(document.getElementById('Editor_Input_'+SVar).type == "checkbox") {
+            document.getElementById('Editor_Input_'+SVar).checked = SValue;
+        } else {
+            document.getElementById('Editor_Input_'+SVar).value = SValue;
+        }
+    }
+    function LoadWSB(LInput) {
+        var WSBXML = new DOMParser().parseFromString(LInput,"text/xml").getElementsByTagName("Configuration")[0];
+        console.log(typeof WSBXML);
+        if(WSBXML === undefined) {
+            ShowErrorBox("Invalid WSB file");
+        } else {
+            var WSBContent;
+            if(WSBXML.getElementsByTagName("vGPU")[0] != "Enable") {
+                SetEditorInput("vGPU",true);
+            }
+        }
+    }
+    function GenerateWSB() {
+        var WSBXML = "<Configuration>";
+        function EnableOrDisable(ETag) {
+            if(document.getElementById('Editor_Input_'+ETag).checked == true) {
+                WSBXML += "  <"+ETag+">Enable</"+ETag+">";
+            } else {
+                WSBXML += "  <"+ETag+">Disable</"+ETag+">";
+            }
+        }
+        function DefaultOrDisable(DTag) {
+            if(document.getElementById('Editor_Input_'+DTag).checked == true) {
+                WSBXML += "  <"+DTag+">Default</"+DTag+">";
+            } else {
+                WSBXML += "  <"+DTag+">Disable</"+DTag+">";
+            }
+        }
+        EnableOrDisable("vGPU");
+        DefaultOrDisable("Networking");
+        EnableOrDisable("AudioInput");
+        EnableOrDisable("VideoInput");
+        EnableOrDisable("PrinterRedirection");
+        DefaultOrDisable("ClipboardRedirection");
+        EnableOrDisable("ProtectedClient");
+        // MemoryInMB
+        var MemoryInMB = document.getElementById('Editor_Input_MemoryInMB').value;
+        if(!(MemoryInMB == 0 || MemoryInMB == null || MemoryInMB == "")) {
+            WSBXML += "  <MemoryInMB>"+MemoryInMB+"</MemoryInMB>";
+        }
+        // LogonCommand
+        var LogonCommandXML = "";
+        var LogonCommand = document.getElementById('Editor_Input_LogonCommand').value.split("\n");
+        for(var i = 0; i < LogonCommand.length; i++) {
+            if(LogonCommand[i] != "") {
+                LogonCommandXML += "    <Command>"+LogonCommand[i]+"</Command>";
+            }
+        }
+        if(LogonCommandXML != "") {
+            WSBXML += "  <LogonCommand>"+LogonCommandXML+"  </LogonCommand>";
+        }
+        // MappedFolders
+        var MappedHomeFolders = document.querySelectorAll("input[name=Editor_Input_MappedFolders]:checked");
+        if(MappedHomeFolders.length > 0) {
+            WSBXML += "  <MappedFolders>";
+            for(var i=0; i < MappedHomeFolders.length; i++) {
+                WSBXML += "    <HostFolder>"+document.getElementById('Editor_Input_HomeDirectory').value+"\\"+MappedHomeFolders[i].value+"</HostFolder><SandboxFolder>C:\\Users\\WDAGUtilityAccount\\"+MappedHomeFolders[i].value+"</SandboxFolder>";
+            }
+            WSBXML += "  </MappedFolders>";
+        }
+        WSBXML += "</Configuration>";
+        return WSBXML;
+    }
+    function DownloadFile() {
+        if(Editor_Check() == true) {
+            var FileContainer = document.createElement("a");
+            FileContainer.href = 'data:text/xml;charset=utf-8,'+GenerateWSB();
+            FileContainer.setAttribute("Download", "Sandbox.wsb");
+            FileContainer.style.display = 'none';
+            document.body.appendChild(FileContainer);
+            FileContainer.click();
+            document.body.removeChild(FileContainer);
+        }
+    }
+    function OnLoad() {
+        // Test JS
+        document.getElementById('FloatBox_Welcome_SubmitButton').disabled = false;
+        // Set Onchange and Oninput Action for Editor
+        var Editor_Inputs = document.getElementById('Editor').querySelectorAll("input,select,textarea");
+        for (i = 0; i < Editor_Inputs.length; i++) {
+            Editor_Inputs[i].addEventListener('change', function() { Editor_Check() });
+        }
+        // 
+        var FloatBox_Templates_Inputs = document.getElementById('FloatBox_Templates').querySelectorAll("input");;
+        for (i = 0; i < FloatBox_Templates_Inputs.length; i++) {
+            FloatBox_Templates_Inputs[i].addEventListener('change', function() { FloatBox_Templates_Update() });
+        }
+        FloatBox_Templates_Update();
+        // Load Previous Session or Default
+        ApplyTemplate(0);
+    }
+    function ShowErrorBox(ErrMessage) {
+        var ErrorBox = document.createElement("div");
+        ErrorBox.setAttribute("class", "ErrorBox AutoFadeOut");
+        ErrorBox.innerHTML = ErrMessage;
+        document.getElementById('JSErrorBoxList').appendChild(ErrorBox);
+    }
+    window.onerror = function(errMsg, errURL, errLine, errCol, errObj) {
+        ShowErrorBox('<p><b>Runtime Error:</b> '+errMsg+' at '+errURL+' ('+errLine+', '+errCol+')</p><p>Please try again.  If the error persists, please refresh or <a href="https://github.com/leestevetk/WSBEditor/issues" target="_blank">report an issue</a>.</p>');
+    }
+    window.onbeforeunload = function() {
+        Editor_Check();
+    }
+</script>
+<style type="text/css">
+    * {
+        transition: all 0.2s;
+    }
+    html, body {
+        background-image:linear-gradient(to right, #e9e5f4, #f4f3f7);
+        background-attachment: fixed;
+        margin: 0;
+        width: 100%;
+    }
+    html, body, button, input, select, textarea {
+        font-family: "Ubuntu", "Calibri", "Arial", sans-serif;
+        font-size: 100%;
+        line-height: 1.2;
+        border-radius: 0;
+        outline: none;
+    }
+    a {
+        color: #0066CC;
+        text-decoration: none;
+    }
+    h1 {
+        font-weight: normal;
+        font-size: 2rem;
+    }
+    h2 {
+        font-weight: normal;
+        font-size: 1.5rem;
+        margin: 0 0 10px 0;
+    }
+    table {
+        width: 100%;
+        border: 0;
+        box-sizing: border-box;
+    }
+    table, tr, td {
+        border-spacing: 0px;
+        padding: 0;
+        margin: 0;
+    }
+    @keyframes FadeIn {
+        0% {display: none; opacity: 0}
+        20% {display: none; opacity: 0}
+        21% {display: block; opacity: 0}
+        100% {display: block; opacity: 1}
+    }
+    @keyframes FadeOut {
+        0% {display: block; opacity: 1}
+        79% {display: block; opacity: 0}
+        80% {display: none; opacity: 0}
+        100% {display: none; opacity: 0}
+    }
+    .AutoFadeOut {
+        animation: FadeOut ease 1s;
+        animation-delay: 10s;
+        animation-fill-mode: forwards;
+    }
+    table.EditorSection {
+        padding: 20px 10px 100px 10px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    table.EditorSection td {
+        padding: 10px;
+        vertical-align: top;
+    }
+    table.EditorSection td:nth-child(1) {
+        font-weight: bold;
+        text-align: right;
+        width: 20%;
+    }
+    table.Footer, table.FooterRed {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        height: auto;
+        padding: 10px 15px;
+        font-size: 0.8em;
+    }
+    table.Footer {
+        border-top: 1px #888 solid;
+        background-color: rgba(240, 240, 240, 0.95);
+        color: #000;
+    }
+    table.FooterRed {
+        border-top: 1px #ff1919 solid;
+        background-color: rgba(242, 172, 172, 0.95);
+        color: #ff1919;
+    }
+    table.Footer td:nth-child(2), table.FooterRed td:nth-child(2) {
+        text-align: right;
+    }
+    input[type=file] {
+        display: none;
+    }
+    input[type=text], input[type=number] {
+        border-width: 0px 0px 2px 0px;
+        border-color: #888;
+        color: #222;
+        background-color: transparent;
+    }
+    input[type=number] {
+        text-align: right;
+        width: 100px;
+    }
+    input[type=text] {
+        width: 100%;
+    }
+    input[type="text"]:not([disabled]):hover, input[type="text"]:not([disabled]):focus, input[type="number"]:not([disabled]):hover, input[type="number"]:not([disabled]):focus {
+        border-color: #222;
+    }
+    input[type="text"]:not([disabled]):invalid, input[type="number"]:not([disabled]):invalid {
+        border-color: #ff1919;
+        background-color: rgba(234, 143, 143, 0.51);
+        color: #222;
+    }
+    textarea {
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 100px;
+        resize: vertical;
+        border: 2px #888 solid;
+        color: #222;
+        background-color: #EEE;
+        padding: 5px;
+    }
+    textarea:not([disabled]):hover, textarea:not([disabled]):focus {
+        border-color: #222;
+        background-color: #FFF;
+    }
+    input[type="button"], input[type="submit"] {
+        text-align: center;
+        border: 0px;
+        font-size: 0.8rem;
+        width: 100px;
+        height: 35px;
+        margin: 2px 5px 2px 0px;
+    }
+    input[type="button"] {
+        background-color: #CCC;
+        color: #444;
+        border: 1px #AAA solid;
+    }
+    input[type="button"]:not([disabled]):hover, input[type="button"]:not([disabled]):active {
+        background-color: #AAA;
+        box-shadow: 0px 0px 3px #888;
+        color: #FFF;
+    }
+    input[type="submit"] {
+        background-color: #3399FF;
+        color: #FFF;
+        border: 1px #0066CC solid;
+    }
+    input[type="submit"]:not([disabled]):hover, input[type="submit"]:not([disabled]):active {
+        background-color: #0066CC;
+        box-shadow: 0px 0px 3px #888;
+    }
+    input[type="button"]:disabled, input[type="submit"]:disabled {
+        opacity: 0.2;
+    }
+    input.TextRadio {
+        display: none;
+    }
+    input.TextRadio + label {
+        display: block;
+        margin: 0;
+        padding: 10px 20px;
+        background-color: transparent;
+    }
+    input.TextRadio:not([disabled]) + label:hover {
+        background-color: #DDD;
+    }
+    input.TextRadio:not([disabled]):checked + label {
+        background-color: #b5d7fb;
+    }
+    input.TextRadio:disabled + label {
+        opacity: 0.3;
+    }
+    h6 {
+        margin: 5px 0px;
+        font-size: 0.8em;
+        color: #999;
+        font-weight: normal;
+        margin: 5px 0px;
+    }
+    table.RadioDescription {
+        border: 1px #CCC solid;
+        background-color: #FFF;
+        table-layout: fixed;
+    }
+    table.RadioDescription td {
+        vertical-align: text-top;
+        text-align: left;
+    }
+    table.RadioDescription td:nth-child(1) {
+        border-right: 1px #CCC solid;
+        width: 30%;
+    }
+    table.RadioDescription td:nth-child(2) {
+        padding: 0px 20px;
+    }
+    table.RadioDescription td:nth-child(2) p {
+        font-size: 0.9em;
+    }
+    div.RadioDescription_Content {
+        margin: 10px 0px;
+        overflow: auto;
+    }
+    div.ErrorBox, div.WarningBox, div.InfoBox {
+        font-weight: bold;
+        padding: 10px 20px 10px 15px;
+        margin-bottom: 10px;
+        box-shadow: 0px 0px 5px #AAA;
+    }
+    div.ErrorBox {
+        background-color: rgba(242, 172, 172, 0.95);
+        border-left: 5px solid #ff1919;
+        color: #ff1919;
+    }    
+    div.InfoBox {
+        background-color: rgba(181, 215, 251, 0.9);
+        border-color: #3399FF solid;
+        color: #000;
+    }
+    div.ErrorBox p {
+        margin: 5px 0px;
+        font-size: 0.8em;
+        font-weight: normal;
+    }
+    div#JSErrorBoxList {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+    }
+    label.CheckboxContainer {
+        display: inline-block;
+        min-width: 120px;
+        position: relative;
+        padding: 0px 15px 0px 35px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        user-select: none;
+        vertical-align: text-top;
+    }
+    label.CheckboxContainer input[type=checkbox] {
+        display: none;
+    }
+    label.CheckboxContainer span.Checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 25px;
+        width: 25px;
+        background-color: #EEE;
+        border: 1px #AAA solid;
+    }
+    label.CheckboxContainer span.Checkmark:after {
+        content: "";
+        position: absolute;
+        display: block;
+        left: 9px;
+        top: 5px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        transform: rotate(45deg);
+    }
+    label.CheckboxContainer:not([disabled]):hover span.Checkmark {
+        background-color: #CCC;
+    }
+    label.CheckboxContainer input[type=checkbox]:not([disabled]):checked ~ span.Checkmark {
+        background-color: #2196F3;
+        border: 1px #0066CC solid;
+    }
+    .EditorNotes {
+        margin: 5px 0px;
+        font-size: 0.8em;
+        color: #666;
+    }
+    form.FloatBox, div.FloatBoxBackground {
+        animation-name: FadeIn;
+        animation-duration: 0.5s;
+    }
+    form.FloatBoxHidden, div.FloatBoxBackgroundHidden {
+        display: none;
+    }
+    div.FloatBoxBackground {
+        position: fixed;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(150, 150, 150, 0.50);
+    }
+    form.FloatBox {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        margin: auto;
+        max-width: 600px;
+        max-height: min-content;
+        padding: 20px;
+        border-color: #b5d7fb;
+        border-style: solid;
+        border-width: 0 0 0 5px;
+        background-color: #FFF;
+        box-shadow: 0px 0px 10px #888;
+    }
+    p.FloatBoxFooter {
+        text-align: right;
+        margin: 10px -5px 0px 0px;
+    }
+    noscript {
+        display: block;
+        margin: 20px 0px;
+        color: #ff1919;
+        font-weight: bold;
+    }
+    @media only screen and (min-width: 600px) {
+        
+    }
+</style>
+</head>
+<body onload="javascript:OnLoad()">
+    <form id="Editor" action="javascript:DownloadFile()">
+        <table class="EditorSection">
+            <tr>
+                <td>Template</td>
+                <td>
+                    <span id="Editor_TemplateName"></span><br />
+                    <input type="button" value="Change" onclick="javascript:ShowFloatBox('Templates')" /><input type="button" value="Reset" onclick="javascript:ShowFloatBox('Reset')" />
+                </td>
+            </tr>
+            <tr>
+                <td>Graphics</td>
+                <td>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" id="Editor_Input_vGPU" />
+                        <span class="Checkmark"></span>
+                        Enable vGPU
+                        <p class="EditorNotes">Enable hardware acceleration in Sandbox.</p>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <td>Memory</td>
+                <td>
+                    <input type="number" id="Editor_Input_MemoryInMB" placeholder="Auto" min="1" /> MB
+                </td>
+            </tr>
+            <tr>
+                <td>Network</td>
+                <td>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" id="Editor_Input_Networking" />
+                        <span class="Checkmark"></span>
+                        Connect to Network
+                        <p class="EditorNotes">Enable networking in Sandbox via Host's default NAT switch.</p>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <td>Shared Resources</td>
+                <td>
+                    Sandbox will share Host's:<br /><br />
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" id="Editor_Input_AudioInput" />
+                        <span class="Checkmark"></span>
+                        Microphone(s)
+                    </label>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" id="Editor_Input_VideoInput" />
+                        <span class="Checkmark"></span>
+                        Camera(s)
+                    </label>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" id="Editor_Input_PrinterRedirection" />
+                        <span class="Checkmark"></span>
+                        Printer(s)
+                    </label>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" id="Editor_Input_ClipboardRedirection" />
+                        <span class="Checkmark"></span>
+                        Clipboard
+                        <p class="EditorNotes">Allow copy-and-paste between the Sandbox and the Host.<br />If <a href="#Editor_Input_ProtectedClient">Protected Client</a> is also enabled, you can only copy-and-paste text (but not files).</p>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <td>Mapped Folders</td>
+                <td>
+                    Home Directory:<br /><input type="text" id="Editor_Input_HomeDirectory" />
+                    <p class="EditorNotes">By default, your home directory is at C:\Users\{Your Username}.<br />To check your home directory, open Command Prompt and type "echo %userprofile%"</p>
+                    <br />
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Desktop" value="Desktop" />
+                        <span class="Checkmark"></span>
+                        Desktop
+                    </label>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Downloads" value="Downloads" />
+                        <span class="Checkmark"></span>
+                        Downloads
+                    </label>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Documents" value="Documents" />
+                        <span class="Checkmark"></span>
+                        Documents
+                    </label>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Pictures" value="Pictures" />
+                        <span class="Checkmark"></span>
+                        Pictures
+                    </label>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" name="Editor_Input_MappedFolders" id="Editor_Input_MappedFolders_Music" value="Music" />
+                        <span class="Checkmark"></span>
+                        Music
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <td>Security</td>
+                <td>
+                    <label class="CheckboxContainer">
+                        <input type="Checkbox" id="Editor_Input_ProtectedClient" />
+                        <span class="Checkmark"></span>
+                        Enable Protected Client Mode
+                        <p class="EditorNotes">Enable extra security mitigations to the RDP connection to Sandbox.</p>
+                    </label>
+                </td>
+            </tr>
+            <tr>
+                <td>Logon Command</td>
+                <td>
+                    <textarea id="Editor_Input_LogonCommand"></textarea>
+                </td>
+            </tr>
+        </table>
+        <table class="Footer" id="Editor_Footer">
+            <tr>
+                <td id="Editor_Footer_Message"></td>
+                <td><input type="button" onclick="javascript:ShowWelcomePage()" value="Open" /><input type="submit" value="Download" id="Editor_Footer_DownloadButton" /></td>
+            </tr>
+        </table>
+    </form>
+    <div id="FloatBoxBackground" class="FloatBoxBackground"></div>
+    <form id="FloatBox_Welcome" class="FloatBox" action="javascript:HideFloatBox('Welcome')">
+        <h2>Welcome to WSBEditor!</h2>
+        <p><b>WSBEditor</b> is a web-based <a href="https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-overview" target="_blank">Windows Sandbox</a> configuration file (*.wsb) editor.</p>
+        <h6>This software comes with ABSOLUTELY NO WARRANTY.</h6>
+        <h6>By proceeding, you accept the <a href="https://www.gnu.org/licenses/gpl-3.0.txt" target="_blank">GNU General Public License</a>.</h6>
+        <h6>&copy; Copyright 2020 <a href="https://leesteve.tk/" target="_blank">Steve's Toolkit</a> (<a href="https://leesteve.tk/WSBEditor/" target="_blank">Readme</a>)</h6>
+        <noscript>You must enable JavaScript to continue.</noscript>
+        <p class="FloatBoxFooter"><input type="submit" value="Continue" id="FloatBox_Welcome_SubmitButton" disabled="disabled" /></p>
+    </form>
+    <form id="FloatBox_Templates" class="FloatBoxHidden" action="javascript:FloatBox_Templates_Submit()">
+        <h2>Templates</h2>
+        <table class="RadioDescription">
+            <tr>
+                <td>
+                    <div class="RadioDescription_Content">
+                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_0" value="0" checked="checked" /><label for="FloatBox_Templates_Template_0">Windows Default</label>
+                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_1" value="1" /><label for="FloatBox_Templates_Template_1">More Secure<h6>(without Networking)</h6></label>
+                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_2" value="2" /><label for="FloatBox_Templates_Template_2">More Secure<h6>(with Networking)</h6></label>
+                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_3" value="3" /><label for="FloatBox_Templates_Template_3">More Functions</label>
+                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_4" value="4" /><label for="FloatBox_Templates_Template_4">Test Downloads</label>
+                    </div>
+                </td>
+                <td>
+                    <div class="RadioDescription_Content">
+                        <b>Description</b>
+                        <p id="FloatBox_Templates_Description"></p>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <p class="FloatBoxFooter"><input type="submit" value="Apply" /><input type="button" onclick="javascript:FloatBox_Templates_Cancel()" value="Cancel" /></p>
+    </form>
+    <form id="FloatBox_Reset" class="FloatBoxHidden" action="javascript:FloatBox_Reset_Submit()">
+        <h2>Reset to Template Defaults</h2>
+        <p>This will revert all changes and reset all settings to their default values in the <b id="FloatBox_Reset_TemplateName"></b> template.</p>
+        <h6>Mapped Folders will be deselected but not reset.</h6>
+        <p class="FloatBoxFooter"><input type="submit" value="Reset" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Reset')" /></p>
+    </form>
+    <div id="JSErrorBoxList">
+    </div>
+</body>
+</html>
