@@ -1,25 +1,19 @@
-## WSBEditor
+# WSBEditor
 
 **[Launch the latest version of WSBEditor](https://leesteve.tk/WSBEditor/WSBEditor.html).**
 
 WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-overview) configuration file (*.wsb) editor.
 
-### What is Windows Sandbox?
+- Lightweight
+- Runs directly from browser
+- No installation required
+
+## What is Windows Sandbox?
 
 Windows 10 includes a fu
 
 ```markdown
 Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
 
 **Bold** and _Italic_ and `Code` text
 
