@@ -17,7 +17,7 @@ You may **[launch the latest version of WSBEditor directly from here](https://le
 ### Option 2: Download WSBEditor
 You may also **[download WSBEditor onto your device](https://github.com/leestevetk/WSBEditor/releases)**.  This is particularly useful if you want to use WSBEditor while you go offline.
 
-**For the tech-savvy reader like you:** WSBEditor uses only plain vanilla JavaScript (i.e. no jQuery or other fancy JavaScript frameworks/libraries).  Therefore, a **downloaded copy of WSBEditor works perfectly while your device is offline**, except that you may see old-school Arial and miss out my favourite [Ubuntu font](https://design.ubuntu.com/font/).  _Is it not a good excuse for being lazy and not learning jQuery???_
+**For the tech-savvy reader like you:** WSBEditor uses only plain vanilla JavaScript (i.e. no jQuery or other fancy JavaScript frameworks/libraries).  Therefore, a **downloaded copy of WSBEditor works perfectly while your device is offline**, except that you may see old-school Arial and miss out my favourite [Ubuntu font](https://design.ubuntu.com/font/).  The beauty of vanilla JS excuses me for being lazy and not learning jQuery.
 
 ## Compatibility
 
