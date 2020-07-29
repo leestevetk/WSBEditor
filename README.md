@@ -17,7 +17,7 @@ You may **[launch the latest version of WSBEditor directly from here](https://le
 ### Option 2: Download WSBEditor
 You may also **[download WSBEditor onto your device](https://github.com/leestevetk/WSBEditor/releases)**, then double-click the file to launch it in your browser.  This is particularly useful if you want to use WSBEditor while you go offline.
 
-**For the tech-savvy reader like you:** WSBEditor uses only plain vanilla JavaScript (i.e. no jQuery or other fancy JS frameworks/libraries).  Therefore, a **downloaded copy of WSBEditor works perfectly while your device is offline**, except that you may see old-school Arial and miss out [my favourite font Ubuntu](https://design.ubuntu.com/font/) (_spot the irony here?_).  This beauty of vanilla JS excuses me for being lazy and not learning jQuery.
+> **For the tech-savvy reader like you:** WSBEditor uses only plain vanilla JavaScript (i.e. no jQuery or other fancy JS frameworks/libraries).  Therefore, a **downloaded copy of WSBEditor works perfectly while your device is offline**, except that you may see old-school Arial and miss out [my favourite font Ubuntu](https://design.ubuntu.com/font/) (_spot the irony here?_).  This beauty of vanilla JS excuses me for being lazy and not learning jQuery.
 
 ## Compatibility
 
@@ -27,7 +27,7 @@ WSBEditor creates Windows Sandbox configuration files, which are compatible with
 
 Please note that **certain configuration options (e.g. printer redirection) require newer versions of Windows 10.**  If certain configuration options are incompatible with your system, you can still run the configuration file, but the incompatible options will of course be ineffective. 
 
-WSBEditor itself is a simple web app - it runs on **any browser** (including on your phone!!).  But after all you will need a PC to launch a Windows Sandbox.
+> WSBEditor itself is a simple web app - it runs on **any browser** (including on your phone!!).  But after all you will need a PC to launch a Windows Sandbox.
 
 ## Support or Contact
 
@@ -43,4 +43,4 @@ This program is free software: you can redistribute it and/or modify it under th
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-
+> A sidenote: the author happens to a law graduate in Hong Kong and is a bit curious about the legal force of GPL in English law jurisdictions.  Please also reach me out if you know any English/Commonwealth cases on the subject.
