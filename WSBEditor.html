@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <!--
-    WSBEditor 0.1.1 (20200728)
+    WSBEditor 0.2.0 (20200729)
     Copyright (C) 2020  Steve's Toolkit
     Website: http://leesteve.tk/WSBEditor/
     GitHub: https://github.com/leestevetk/WSBEditor/
@@ -29,15 +29,17 @@
     
     // Editor Handlers
     function Editor_Check() {
+        var ErrorMsg = "";
     	function IndicateErrRow(RowID) {
     		document.getElementById('EditorRow_'+RowID).setAttribute("class", "EditorRowErr");
     	}
-        var ErrorMsg = "";
-        var Filename = document.getElementById('Editor_Input_Filename').value;
+    	// Remove ErrRow Indications
         var EditorRows = document.getElementById('Editor').getElementsByTagName("tr");
         for(i = 0; i < EditorRows.length; i++) {
         	EditorRows[i].setAttribute("class","");
         }
+        // Check Filename
+        var Filename = document.getElementById('Editor_Input_Filename').value;
         if(Filename == "") {
         	document.getElementById('Editor_Input_Filename').value = CurrentTemplateFilename;
         } else {
@@ -45,6 +47,7 @@
         		document.getElementById('Editor_Input_Filename').value = Filename+".wsb";
         	}
         }
+        // Check Mapped User Folders
         if(document.querySelectorAll("input[name=Editor_Input_MappedUserFolders]:checked,input[name=Editor_Input_MappedUserFolders]:indeterminate").length > 0) {
             document.getElementById('Editor_Input_HomeDirectory').required = true;
             document.getElementById('Editor_Input_HomeDirectory').setAttribute("placeholder","Required");
@@ -58,9 +61,11 @@
             document.getElementById('Editor_Input_HomeDirectory').required = false;
             document.getElementById('Editor_Input_HomeDirectory').setAttribute("placeholder","Home Directory");
         }
+        // Check MemoryInMB
         if(document.getElementById('Editor_Input_MemoryInMB').checkValidity() == false) {
             document.getElementById('Editor_Input_MemoryInMB').value = "";
         }
+        // Show Err Message and Return Result
         document.getElementById('Editor_Footer_Message').innerHTML = ErrorMsg;
         if(document.getElementById('Editor').checkValidity() == true && ErrorMsg == "") {
             document.getElementById('Editor_Footer_DownloadButton').disabled = false;
@@ -144,15 +149,34 @@
     
     // WSB Handlers
     function LoadWSB(LInput) {
+        function ShowWSBError(ErrorMsg) {
+            ShowErrorBox("<p><b>Invalid Configuration File:</b> "+ErrorMsg+".</p><p>Please check your  file and try again.</p>");
+        }
         var WSBXML = new DOMParser().parseFromString(LInput,"text/xml").getElementsByTagName("Configuration")[0];
-        console.log(typeof WSBXML);
         if(WSBXML === undefined) {
-            ShowErrorBox("Invalid WSB file");
+            ShowWSBError("Cannot find &lt;Configuration&gt; tag");
+            return false;
         } else {
-            var WSBContent;
-            if(WSBXML.getElementsByTagName("vGPU")[0] != "Enable") {
-                SetEditorInput("vGPU",true);
+            ApplyTemplate(0);
+            var LoadWSBErr
+            function EnableOrDisable(ETag) {
+                if(WSBXML.getElementsByTagName(ETag)[0] !== undefined) {
+                    var ETagValue = WSBXML.getElementsByTagName(ETag)[0].innerHTML;
+                    switch(ETagValue.toUpperCase()) {
+                        case "ENABLE":
+                            SetEditorInput(ETag,true);
+                            break;
+                        case "DISABLE":
+                            SetEditorInput(ETag,false);
+                            break;
+                        default:
+                            alert("Warning: Unknown value ("+ETagValue+") for &lt;"+ETag+"&gt; was ignored.");
+                            break;
+                    }
+                }
             }
+            EnableOrDisable("vGPU");
+            return true;
         }
     }
     function GenerateWSB() {
@@ -216,6 +240,8 @@
             document.body.appendChild(FileContainer);
             FileContainer.click();
             document.body.removeChild(FileContainer);
+        } else {
+            ShowErrorBox("<p><b>Invalid Configuration:</b> "+document.getElementById('Editor_Footer_Message').innerHTML+"<br />Please change your settings and try again.</p>");
         }
     }
     
@@ -250,12 +276,20 @@
     
     // FloatBox Handlers
     function ShowFloatBox(TargetID) {
-        document.getElementById('FloatBoxBackground').setAttribute("class","FloatBoxBackground");
-        document.getElementById("FloatBox_"+TargetID).setAttribute("class","FloatBox");
+		document.getElementById("FloatBox_"+TargetID).style.display = "block";
+		document.getElementById('FloatBoxBackground').style.display = "block";
+		setTimeout( function() {
+			document.getElementById("FloatBox_"+TargetID).style.opacity = "1";
+			document.getElementById('FloatBoxBackground').style.opacity = "1";
+		}, 50);
     }
     function HideFloatBox(TargetID) {
-        document.getElementById('FloatBoxBackground').setAttribute("class","FloatBoxBackgroundHidden");
-        document.getElementById("FloatBox_"+TargetID).setAttribute("class","FloatBoxHidden");
+        document.getElementById("FloatBox_"+TargetID).style.opacity = "0";
+        document.getElementById('FloatBoxBackground').style.opacity = "0";
+        setTimeout( function() {
+			document.getElementById("FloatBox_"+TargetID).style.display = "none";
+			document.getElementById('FloatBoxBackground').style.display = "none";
+        }, 200);
     }
     function FloatBox_Templates_Update() {
         switch (parseInt(document.querySelector('input[name=FloatBox_Templates_Template]:checked').value)) {
@@ -289,6 +323,19 @@
         HideFloatBox("Reset");
         ApplyTemplate(CurrentTemplateID);
     }
+    function FloatBox_Open_Input_Onchange() {
+    	var SelectedFile = document.getElementById('FloatBox_Open_Input').files[0];
+    	if(SelectedFile !== undefined) {
+            var FReader = new FileReader();
+            FReader.readAsText(SelectedFile);
+            FReader.onload = function(e) {
+                if(LoadWSB(e.target.result) == true) {
+                    HideFloatBox("Open");
+                }
+                document.getElementById('FloatBox_Open').reset();
+            }
+    	}
+    }
     
     function OnLoad() {
         // Test JS
@@ -315,8 +362,14 @@
     }
     function ShowErrorBox(ErrMessage) {
         var ErrorBox = document.createElement("div");
-        ErrorBox.setAttribute("class", "ErrorBox AutoFadeOut");
+        ErrorBox.setAttribute("class", "ErrorBox");
         ErrorBox.innerHTML = ErrMessage;
+        setTimeout( function() {
+			ErrorBox.style.opacity = "0";
+        }, 10000);
+        setTimeout( function() {
+			ErrorBox.style.display = "none";
+        }, 11000);
         document.getElementById('JSErrorBoxList').appendChild(ErrorBox);
     }
     window.onerror = function(errMsg, errURL, errLine, errCol, errObj) {
@@ -326,7 +379,7 @@
         Editor_Check();
     }
 </script>
-<style type="text/css">
+<style>
     * {
         transition: all 0.2s;
     }
@@ -361,7 +414,7 @@
     	display: block;
         margin: 5px 0px;
         font-size: 0.8em;
-        color: #999;
+        color: #666;
         font-weight: normal;
     }
     table {
@@ -385,11 +438,6 @@
         79% {display: block; opacity: 0}
         80% {display: none; opacity: 0}
         100% {display: none; opacity: 0}
-    }
-    .AutoFadeOut {
-        animation: FadeOut ease 1s;
-        animation-delay: 10s;
-        animation-fill-mode: forwards;
     }
     table.EditorTable {
         padding: 20px 10px 100px 10px;
@@ -628,13 +676,6 @@
         height: 5px;
         background-color: #FFF;
     }
-    form.FloatBox, div.FloatBoxBackground {
-        animation-name: FadeIn;
-        animation-duration: 0.5s;
-    }
-    form.FloatBoxHidden, div.FloatBoxBackgroundHidden {
-        display: none;
-    }
     div.FloatBoxBackground {
         position: fixed;
         top: 0;
@@ -642,7 +683,7 @@
         height: 100%;
         background-color: rgba(150, 150, 150, 0.50);
     }
-    form.FloatBox {
+    form.FloatBox, form.FloatBoxHidden {
         position: fixed;
         top: 0;
         left: 0;
@@ -656,6 +697,10 @@
         border-width: 0 0 0 5px;
         background-color: #FFF;
         box-shadow: 0px 0px 10px #888;
+    }
+    form.FloatBoxHidden {
+    	display: none;
+    	opacity: 0;
     }
     p.FloatBoxFooter {
         text-align: right;
@@ -672,15 +717,15 @@
 			padding: 10px 25px;
 		}
 		table.EditorTable td:nth-child(1) {
-			border-right: 2px solid #CCC;
+			border-right: 3px solid #CCC;
 			color: #666;
 		}
 		table.EditorTable tr:hover:not(.EditorRowErr) td:nth-child(1) {
-			border-right: 2px solid #444;
+			border-right: 3px solid #444;
 			color: #000;
 		}
 		table.EditorTable tr.EditorRowErr td:nth-child(1) {
-			border-right: 2px solid #ff1919;
+			border-right: 3px solid #ff1919;
 		}
     }
 </style>
@@ -760,8 +805,11 @@
             <tr id="EditorRow_MappedUserFolders">
                 <td>Mapped User Folders</td>
                 <td>
-                    Home Directory:<br /><input type="text" id="Editor_Input_HomeDirectory" />
-                    <span class="h6span">By default, your home directory is "C:\Users\{Your Username}".<br />To check, open Command Prompt and type "echo %userprofile%".</span>
+                    <label>
+                        Home Directory:<br />
+                        <input type="text" id="Editor_Input_HomeDirectory" />
+                        <span class="h6span">By default, your Home Directory is "C:\Users\{Your Username}".<br />To check, open Command Prompt and type "echo %userprofile%" (<a href="https://github.com/leestevetk/WSBEditor/wiki/Home-Directory" target="_blank">learn more</a>).</span>
+                    </label>
                     <br />
                     <label class="CheckboxContainer">
                         <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Desktop" value="Desktop" class="TristateCheckbox" />
@@ -810,14 +858,14 @@
                 <td>Logon Commands</td>
                 <td>
                     <textarea id="Editor_Input_LogonCommand"></textarea>
-                    <span class="h6span">These commands will automatically be invoked in the Sandbox after log-on as Sandbox user.</span>
+                    <span class="h6span">Enter one command on each line.  These commands will automatically be invoked as Sandbox user in the Sandbox after log-on.</span>
                 </td>
             </tr>
         </table>
         <table class="Footer" id="Editor_Footer">
             <tr>
                 <td id="Editor_Footer_Message"></td>
-                <td><input type="button" onclick="javascript:ShowWelcomePage()" value="Open" /><input type="submit" value="Download" id="Editor_Footer_DownloadButton" /></td>
+                <td><input type="button" onclick="javascript:ShowFloatBox('Open')" value="Open" /><input type="submit" value="Download" id="Editor_Footer_DownloadButton" /></td>
             </tr>
         </table>
     </form>
@@ -829,6 +877,7 @@
         <h6>By proceeding, you accept the <a href="https://www.gnu.org/licenses/gpl-3.0.txt" target="_blank">GNU General Public License</a>.</h6>
         <h6>&copy; Copyright 2020 <a href="https://leesteve.tk/" target="_blank">Steve's Toolkit</a> (<a href="https://leesteve.tk/WSBEditor/" target="_blank">Readme</a>)</h6>
         <noscript>You must enable JavaScript to continue.</noscript>
+        <br />
         <p class="FloatBoxFooter"><input type="submit" value="Continue" id="FloatBox_Welcome_SubmitButton" disabled="disabled" /></p>
     </form>
     <form id="FloatBox_Templates" class="FloatBoxHidden" action="javascript:FloatBox_Templates_Submit()">
@@ -859,6 +908,15 @@
         <p>This will revert all changes and reset all settings to their default values in the <b id="FloatBox_Reset_TemplateName"></b> template.</p>
         <h6>Mapped Folders will be deselected but not reset.</h6>
         <p class="FloatBoxFooter"><input type="submit" value="Reset" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Reset')" /></p>
+    </form>
+    <form id="FloatBox_Open" class="FloatBoxHidden" action="javascript:document.getElementById('FloatBox_Open_Input').click()">
+        <h2>Open Configuration File</h2>
+        <p><b>This will overwrite any changes you have made on this page.</b></p>
+        <h6>To keep your changes, <a href="javascript:DownloadFile()">download a copy</a> or open your configuration file in a <a href="?" target="_blank">new window</a>.</h6>
+        <h6>Choose your configuration file (*.wsb) to continue.</h6>
+        <br />
+        <input type="file" id="FloatBox_Open_Input" accept=".wsb" onchange="javascript:FloatBox_Open_Input_Onchange()" />
+        <p class="FloatBoxFooter"><input type="submit" value="Choose" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Open')" /></p>
     </form>
     <div id="JSErrorBoxList">
     </div>
