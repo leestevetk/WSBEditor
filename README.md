@@ -7,6 +7,7 @@ WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/wind
 - Lightweight (_everything in one file_)
 - Runs directly from browser
 - No installation required
+- Up-to-date and includes [latest configuration options introduced in Windows 10 Version 2004 (aka the May 2020 update)](https://docs.microsoft.com/en-us/windows/whats-new/whats-new-windows-10-version-2004#windows-sandbox).
 
 ## How to Use
 
