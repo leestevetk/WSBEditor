@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="en">
 <head>
 <!--
     WSBEditor 0.1.1 (20200728)
@@ -20,9 +20,10 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"><link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu">
 <title>WSBEditor by Steve's Toolkit</title>
-<script type="text/javascript">
+<script>
     var CurrentTemplateID = 0;
     var CurrentTemplateName, CurrentTemplateFilename = "";
     
@@ -329,9 +330,10 @@
     * {
         transition: all 0.2s;
     }
-    html, body {
+    html {
         background-image:linear-gradient(to right, #e9e5f4, #f4f3f7);
-        background-attachment: fixed;
+    }
+    html, body {
         margin: 0;
         width: 100%;
     }
@@ -354,6 +356,13 @@
         font-weight: normal;
         font-size: 1.5rem;
         margin: 0 0 10px 0;
+    }
+    h6,.h6span {
+    	display: block;
+        margin: 5px 0px;
+        font-size: 0.8em;
+        color: #999;
+        font-weight: normal;
     }
     table {
         width: 100%;
@@ -518,13 +527,6 @@
     input.TextRadio:disabled + label {
         opacity: 0.3;
     }
-    h6 {
-        margin: 5px 0px;
-        font-size: 0.8em;
-        color: #999;
-        font-weight: normal;
-        margin: 5px 0px;
-    }
     table.RadioDescription {
         border: 1px #CCC solid;
         background-color: #FFF;
@@ -561,7 +563,7 @@
     }    
     div.InfoBox {
         background-color: rgba(181, 215, 251, 0.9);
-        border-color: #3399FF solid;
+        border: #3399FF solid;
         color: #000;
     }
     div.ErrorBox p {
@@ -625,11 +627,6 @@
         width: 15px;
         height: 5px;
         background-color: #FFF;
-    }
-    .EditorNotes {
-        margin: 5px 0px;
-        font-size: 0.8em;
-        color: #666;
     }
     form.FloatBox, div.FloatBoxBackground {
         animation-name: FadeIn;
@@ -711,7 +708,7 @@
                         <input type="Checkbox" id="Editor_Input_vGPU" />
                         <span class="Checkmark"></span>
                         Enable vGPU
-                        <p class="EditorNotes">Enable hardware acceleration in Sandbox.</p>
+                        <span class="h6span">Enable hardware acceleration in Sandbox.</span>
                     </label>
                 </td>
             </tr>
@@ -719,7 +716,7 @@
                 <td>Memory</td>
                 <td>
                     <input type="number" id="Editor_Input_MemoryInMB" placeholder="Auto" min="1" /> MB
-                    <p class="EditorNotes">Maximum Sandbox memory usage (actual memory usage may exceed this amount if needed to boot the Sandbox).</p>
+                    <span class="h6span">Maximum Sandbox memory usage (actual memory usage may exceed this amount if needed to boot the Sandbox).</span>
                 </td>
             </tr>
             <tr id="EditorRow_Network">
@@ -729,7 +726,7 @@
                         <input type="Checkbox" id="Editor_Input_Networking" />
                         <span class="Checkmark"></span>
                         Connect Sandbox to Network
-                        <p class="EditorNotes">Enable networking in Sandbox via Host's default NAT switch.</p>
+                        <span class="h6span">Enable networking in Sandbox via Host's default NAT switch.</span>
                     </label>
                 </td>
             </tr>
@@ -756,7 +753,7 @@
                         <input type="Checkbox" id="Editor_Input_ClipboardRedirection" />
                         <span class="Checkmark"></span>
                         Clipboard
-                        <p class="EditorNotes">Allow copy-and-paste between the Sandbox and the Host.<br />If <a href="#Editor_Input_ProtectedClient">Protected Client</a> is also enabled, you can only copy-and-paste text (but not files).</p>
+                        <span class="h6span">Allow copy-and-paste between the Sandbox and the Host.<br />If <a href="#Editor_Input_ProtectedClient">Protected Client</a> is also enabled, you can only copy-and-paste text (but not files).</span>
                     </label>
                 </td>
             </tr>
@@ -764,37 +761,37 @@
                 <td>Mapped User Folders</td>
                 <td>
                     Home Directory:<br /><input type="text" id="Editor_Input_HomeDirectory" />
-                    <p class="EditorNotes">By default, your home directory is "C:\Users\{Your Username}".<br />To check, open Command Prompt and type "echo %userprofile%".</p>
+                    <span class="h6span">By default, your home directory is "C:\Users\{Your Username}".<br />To check, open Command Prompt and type "echo %userprofile%".</span>
                     <br />
                     <label class="CheckboxContainer">
                         <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Desktop" value="Desktop" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Desktop
-                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Desktop_Notes"></p>
+                        <span class="h6span" id="Editor_Input_MappedUserFolders_Desktop_Notes"></span>
                     </label>
                     <label class="CheckboxContainer">
                         <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Downloads" value="Downloads" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Downloads
-                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Downloads_Notes"></p>
+                        <span class="h6span" id="Editor_Input_MappedUserFolders_Downloads_Notes"></span>
                     </label>
                     <label class="CheckboxContainer">
                         <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Documents" value="Documents" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Documents
-                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Documents_Notes"></p>
+                        <span class="h6span" id="Editor_Input_MappedUserFolders_Documents_Notes"></span>
                     </label>
                     <label class="CheckboxContainer">
                         <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Pictures" value="Pictures" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Pictures
-                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Pictures_Notes"></p>
+                        <span class="h6span" id="Editor_Input_MappedUserFolders_Pictures_Notes"></span>
                     </label>
                     <label class="CheckboxContainer">
                         <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Music" value="Music" class="TristateCheckbox" />
                         <span class="Checkmark"></span>
                         Music
-                        <p class="EditorNotes" id="Editor_Input_MappedUserFolders_Music_Notes"></p>
+                        <span class="h6span" id="Editor_Input_MappedUserFolders_Music_Notes"></span>
                     </label>
                 </td>
             </tr>
@@ -805,7 +802,7 @@
                         <input type="Checkbox" id="Editor_Input_ProtectedClient" />
                         <span class="Checkmark"></span>
                         Enable Protected Client Mode
-                        <p class="EditorNotes">Enable extra security mitigations to the RDP connection to Sandbox.</p>
+                        <span class="h6span">Enable extra security mitigations to the RDP connection to Sandbox.</span>
                     </label>
                 </td>
             </tr>
@@ -813,7 +810,7 @@
                 <td>Logon Commands</td>
                 <td>
                     <textarea id="Editor_Input_LogonCommand"></textarea>
-                    <p class="EditorNotes">These commands will automatically be invoked in the Sandbox as user after log-on.</p>
+                    <span class="h6span">These commands will automatically be invoked in the Sandbox after log-on as Sandbox user.</span>
                 </td>
             </tr>
         </table>
@@ -841,8 +838,8 @@
                 <td>
                     <div class="RadioDescription_Content">
                         <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_0" value="0" checked="checked" /><label for="FloatBox_Templates_Template_0">Windows Default</label>
-                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_1" value="1" /><label for="FloatBox_Templates_Template_1">More Secure<h6>(without Networking)</h6></label>
-                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_2" value="2" /><label for="FloatBox_Templates_Template_2">More Secure<h6>(with Networking)</h6></label>
+                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_1" value="1" /><label for="FloatBox_Templates_Template_1">More Secure<span class="h6span">(without Networking)</span></label>
+                        <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_2" value="2" /><label for="FloatBox_Templates_Template_2">More Secure<span class="h6span">(with Networking)</span></label>
                         <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_3" value="3" /><label for="FloatBox_Templates_Template_3">More Functions</label>
                         <input type="radio" name="FloatBox_Templates_Template" class="TextRadio" id="FloatBox_Templates_Template_4" value="4" /><label for="FloatBox_Templates_Template_4">Test Downloads</label>
                     </div>
