@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <!--
-    WSBEditor 0.2.0 (20200729)
+    WSBEditor 0.2.0 (20200730)
     Copyright (C) 2020  Steve's Toolkit
     Website: http://leesteve.tk/WSBEditor/
     GitHub: https://github.com/leestevetk/WSBEditor/
@@ -165,11 +165,15 @@
         } else {
             ApplyTemplate(0);
             var LoadWSBWarnings = new Array();
-            function EnableOrDisable(ETag) {
+            function EnableDisableDefault(ETag) {
                 var GetFromXML = ConfigXML.getElementsByTagName(ETag.toLowerCase());
                 if(GetFromXML.length > 0) {
                     var ETagValue = GetFromXML[0].innerHTML;
                     switch(ETagValue.toLowerCase()) {
+                        case "":
+                            break;
+                        case "default":
+                            break;
                         case "enable":
                             SetEditorInput(ETag,true);
                             break;
@@ -177,16 +181,18 @@
                             SetEditorInput(ETag,false);
                             break;
                         default:
-                            LoadWSBWarnings.push("Warning: Unknown value ("+ETagValue+") for &lt;"+ETag+"&gt; was ignored.");
+                            LoadWSBWarnings.push("&lt;"+ETag+"&gt; must be \"Enable\", \"Disable\" or \"Default\"; invalid value \""+ETagValue+"\" ignored.");
                             break;
                     }
                 }
             }
-            function DefaultOrDisable(DTag) {
+            function DefaultDisable(DTag) {
                 var GetFromXML = ConfigXML.getElementsByTagName(DTag.toLowerCase());
                 if(GetFromXML.length > 0) {
                     var DTagValue = GetFromXML[0].innerHTML;
                     switch(DTagValue.toLowerCase()) {
+                        case "":
+                            break;
                         case "default":
                             SetEditorInput(DTag,true);
                             break;
@@ -194,44 +200,72 @@
                             SetEditorInput(DTag,false);
                             break;
                         default:
-                            LoadWSBWarnings.push("Warning: Unknown value ("+DTagValue+") for &lt;"+DTag+"&gt; was ignored.");
+                            LoadWSBWarnings.push("&lt;"+DTag+"&gt; must be \"Default\" or \"Disable\"; invalid value \""+DTagValue+"\" ignored.");
                             break;
                     }
                 }
             }
-            EnableOrDisable("vGPU");
-            DefaultOrDisable("Networking");
-            EnableOrDisable("AudioInput");
-            EnableOrDisable("VideoInput");
-            EnableOrDisable("PrinterRedirection");
-            DefaultOrDisable("ClipboardRedirection");
-            EnableOrDisable("ProtectedClient");
+            EnableDisableDefault("vGPU");
+            DefaultDisable("Networking");
+            EnableDisableDefault("AudioInput");
+            EnableDisableDefault("VideoInput");
+            EnableDisableDefault("PrinterRedirection");
+            DefaultDisable("ClipboardRedirection");
+            EnableDisableDefault("ProtectedClient");
+            // MemoryInMB
+            var MemoryInMB = ConfigXML.getElementsByTagName("memoryinmb");
+            if(MemoryInMB.length > 0 && MemoryInMB[0].innerHTML != "") {
+                MemoryInMB = MemoryInMB[0].innerHTML;
+                if(isNaN(MemoryInMB) == true) {
+                    LoadWSBWarnings.push("&lt;MemoryInMB&gt; must be a positive integer; invalid value \""+MemoryInMB+"\" ignored.");
+                } else {
+                    MemoryInMB = parseFloat(MemoryInMB);
+                    if(Number.isInteger(MemoryInMB) == false) {
+                        LoadWSBWarnings.push("&lt;MemoryInMB&gt; must be a positive integer; invalid value "+MemoryInMB+" rounded to "+Math.round(MemoryInMB)+".");
+                        SetEditorInput("MemoryInMB",Math.round(MemoryInMB));
+                    } else {
+                        SetEditorInput("MemoryInMB",MemoryInMB);
+                    }
+                }
+            }
+            // LogonCommand
+            var GetLogonCommand = ConfigXML.getElementsByTagName("logoncommand");
+            var LogonCommand = "";
+            for(i = 0; i < GetLogonCommand.length; i++) {
+                var GetCommand = GetLogonCommand[i].getElementsByTagName("command");
+                for(j = 0; j < GetCommand.length; j++) {
+                    if(GetCommand[j].innerHTML != "") {
+                        LogonCommand += GetCommand[j].innerHTML+"\n";
+                    }
+                }
+            }
+            SetEditorInput("LogonCommand",LogonCommand);
             return [true,LoadWSBWarnings];
         }
     }
     function GenerateWSB() {
         var WSBXML = "<Configuration>%0D%0A";
-        function EnableOrDisable(ETag) {
+        function EnableDisableDefault(ETag) {
             if(document.getElementById('Editor_Input_'+ETag).checked == true) {
                 WSBXML += "    <"+ETag+">Enable</"+ETag+">%0D%0A";
             } else {
                 WSBXML += "    <"+ETag+">Disable</"+ETag+">%0D%0A";
             }
         }
-        function DefaultOrDisable(DTag) {
+        function DefaultDisable(DTag) {
             if(document.getElementById('Editor_Input_'+DTag).checked == true) {
                 WSBXML += "    <"+DTag+">Default</"+DTag+">%0D%0A";
             } else {
                 WSBXML += "    <"+DTag+">Disable</"+DTag+">%0D%0A";
             }
         }
-        EnableOrDisable("vGPU");
-        DefaultOrDisable("Networking");
-        EnableOrDisable("AudioInput");
-        EnableOrDisable("VideoInput");
-        EnableOrDisable("PrinterRedirection");
-        DefaultOrDisable("ClipboardRedirection");
-        EnableOrDisable("ProtectedClient");
+        EnableDisableDefault("vGPU");
+        DefaultDisable("Networking");
+        EnableDisableDefault("AudioInput");
+        EnableDisableDefault("VideoInput");
+        EnableDisableDefault("PrinterRedirection");
+        DefaultDisable("ClipboardRedirection");
+        EnableDisableDefault("ProtectedClient");
         // MemoryInMB
         var MemoryInMB = document.getElementById('Editor_Input_MemoryInMB').value;
         if(!(MemoryInMB == 0 || MemoryInMB == null || MemoryInMB == "")) {
@@ -360,7 +394,7 @@
         HideFloatBox("Reset");
         ApplyTemplate(CurrentTemplateID);
     }
-    function FloatBox_Open_Upload() {
+    function OpenWSBFile() {
     	var SelectedFile = document.getElementById('FloatBox_Open_Input').files[0];
     	if(SelectedFile !== undefined) {
             var FReader = new FileReader();
@@ -369,14 +403,15 @@
                 var LoadResult = LoadWSB(e.target.result);
                 if(LoadResult[0] == true) {
                     HideFloatBox("Open");
+                    document.getElementById('FloatBox_OpenWSBWarnings_Table').innerHTML = "<tbody></tbody>";
                     document.getElementById('Editor_Input_Filename').value = SelectedFile.name;
                     if(LoadResult[1].length != 0) {
                         ShowAlert("<p>There were warning(s) while opening <b>"+SelectedFile.name+"</b>.</p>","Yellow");
                         for(i = 0; i < LoadResult[1].length; i++) {
-                            document.getElementById('FloatBox_LoadWSBWarnings_Table').insertRow(-1).insertCell(0).innerHTML = LoadResult[1][i];
+                            document.getElementById('FloatBox_OpenWSBWarnings_Table').insertRow(-1).insertCell(0).innerHTML = LoadResult[1][i];
                         }
-                        document.getElementById('FloatBox_LoadWSBWarnings_Filename').innerHTML = SelectedFile.name;
-                        ShowFloatBox("LoadWSBWarnings");
+                        document.getElementById('FloatBox_OpenWSBWarnings_Filename').innerHTML = SelectedFile.name;
+                        ShowFloatBox("OpenWSBWarnings");
                     }
                     ShowAlert("<p><b>"+SelectedFile.name+"</b> has been successfully opened.</p>","Green");
                 } else {
@@ -1021,15 +1056,13 @@
         <h6>To keep your changes, <a href="javascript:DownloadFile()">download a copy</a> or open your configuration file in a <a href="?" target="_blank">new window</a>.</h6>
         <h6>Choose your configuration file (*.wsb) to continue.</h6>
         <br />
-        <input type="file" id="FloatBox_Open_Input" accept=".wsb" onchange="javascript:FloatBox_Open_Upload()" />
+        <input type="file" id="FloatBox_Open_Input" accept=".wsb" onchange="javascript:OpenWSBFile()" />
         <p class="FloatBoxFooter"><input type="submit" value="Choose" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Open')" /></p>
     </form>
-    <form id="FloatBox_LoadWSBWarnings" class="FloatBoxHidden YellowBorder" action="javascript:HideFloatBox('LoadWSBWarnings')">
+    <form id="FloatBox_OpenWSBWarnings" class="FloatBoxHidden YellowBorder" action="javascript:HideFloatBox('OpenWSBWarnings')">
         <h2>File Warnings</h2>
-        <p>We encountered these warnings while opening <b id="FloatBox_LoadWSBWarnings_Filename"></b>:</p>
-        <table class="BorderTable" id="FloatBox_LoadWSBWarnings_Table">
-            <tbdoy></tbdoy>
-        </table>
+        <p>We encountered these warnings while opening <b id="FloatBox_OpenWSBWarnings_Filename"></b>:</p>
+        <table class="BorderTable" id="FloatBox_OpenWSBWarnings_Table"><tbdoy></tbdoy></table>
         <h6>Your file has been successfully opened.</h6>
         <p class="FloatBoxFooter"><input type="submit" value="Close" /></p>
     </form>
