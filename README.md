@@ -43,4 +43,4 @@ This program is free software: you can redistribute it and/or modify it under th
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-> A sidenote: the author happens to a little law student in Hong Kong and is a bit curious about the legal force of GPL in English law jurisdictions.  Please also reach me out if you know any English/Commonwealth cases on the subject.
+> A sidenote: the author happens to a little law student in Hong Kong and is a bit curious about the legal force of GPL in English law jurisdictions.  Please reach me out if you know any English/Commonwealth court rulings on the subject.
