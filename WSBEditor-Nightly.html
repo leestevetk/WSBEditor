@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <!--
-    WSBEditor 0.2.0 (20200730)
+    WSBEditor 0.3.0 (20200801)
     Copyright (C) 2020  Steve's Toolkit
     Website: http://leesteve.tk/WSBEditor/
     GitHub: https://github.com/leestevetk/WSBEditor/
@@ -26,9 +26,13 @@
 <script>
     var CurrentTemplateID = 0;
     var CurrentTemplateName, CurrentTemplateFilename = "";
+    var EditorVersion = "0.3.0";
+    var EditorRelease = 20200801;
+    var EditorInitiated = false;
+    var SandboxHomeDirectory = "C:\\Users\\WDAGUtilityAccount";
     
     // Editor Handlers
-    function Editor_Check() {
+    function Editor_Onchange() {
         var ErrorMsg = new Array();
     	function IndicateErrRow(RowID) {
     		document.getElementById('EditorRow_'+RowID).setAttribute("class", "EditorRowErr");
@@ -61,10 +65,35 @@
             document.getElementById('Editor_Input_HomeDirectory').required = false;
             document.getElementById('Editor_Input_HomeDirectory').setAttribute("placeholder","Home Directory");
         }
+        // Check HomeDirectory
+        document.getElementById('Editor_Input_HomeDirectory').value = ParsePath(document.getElementById('Editor_Input_HomeDirectory').value);
         // Check MemoryInMB
         if(document.getElementById('Editor_Input_MemoryInMB').checkValidity() == false) {
             document.getElementById('Editor_Input_MemoryInMB').value = "";
         }
+        // AutoSave
+        if(document.getElementById('Editor_Input_AutoSave').checked == true) {
+			localStorage.setItem("WSBEditor_LastSession_Filename",document.getElementById('Editor_Input_Filename').value);
+			localStorage.setItem("WSBEditor_LastSession_LastEditTime",Date.now());
+			localStorage.setItem("WSBEditor_LastSession_WSBXML",GenerateWSBXML(true));
+        } else {        	
+			localStorage.removeItem("WSBEditor_LastSession_Filename");
+			localStorage.removeItem("WSBEditor_LastSession_LastEditTime");
+			localStorage.removeItem("WSBEditor_LastSession_WSBXML");
+        }
+        // Save Editor Settings
+        if(document.getElementById('Editor_Input_PreserveEditorSettings').checked == true) {
+			localStorage.setItem("WSBEditor_EditorSettings_PreserveEditorSettings",true);
+			localStorage.setItem("WSBEditor_EditorSettings_HomeDirectory",document.getElementById('Editor_Input_HomeDirectory').value);
+			localStorage.setItem("WSBEditor_EditorSettings_AutoSave",document.getElementById('Editor_Input_AutoSave').checked);
+			localStorage.setItem("WSBEditor_EditorSettings_EditorXML",document.getElementById('Editor_Input_EditorXML').checked);
+        } else {
+			localStorage.setItem("WSBEditor_EditorSettings_PreserveEditorSettings",false);
+			localStorage.removeItem("WSBEditor_EditorSettings_HomeDirectory");
+			localStorage.removeItem("WSBEditor_EditorSettings_AutoSave");
+			localStorage.removeItem("WSBEditor_EditorSettings_EditorXML");
+        }
+        
         // Show Err Message and Return Result
         document.getElementById('Editor_Footer_Message').innerHTML = "";
         for(i = 0; i < ErrorMsg.length; i++) {
@@ -81,9 +110,20 @@
         }
     }
     function ApplyTemplate(TemplateID) {
+    	// Delete Filename if Unchanged
+    	if(document.getElementById('Editor_Input_Filename').value.toUpperCase() == CurrentTemplateFilename.toUpperCase()) {
+        	document.getElementById('Editor_Input_Filename').value = "";
+        }
     	// Preserve Selected Inputs
-    	var PFilename = document.getElementById('Editor_Input_Filename').value;
-    	var PHomeDirectory = document.getElementById('Editor_Input_HomeDirectory').value;
+    	var PreservedInputs = document.getElementsByClassName("PreservedInput");
+    	var PreservedInputsValues = new Array();
+    	for(i = 0; i < PreservedInputs.length; i++) {
+    		if(PreservedInputs[i].type == "checkbox") {
+    			PreservedInputsValues.push(PreservedInputs[i].checked);
+    		} else {
+    			PreservedInputsValues.push(PreservedInputs[i].value);
+    		}
+    	}
     	// Reset Form
         document.getElementById('Editor').reset();
         var Reset_Tristates = document.getElementsByClassName("TristateCheckbox");
@@ -91,12 +131,13 @@
             Tristate_Edit(Reset_Tristates[i].id, 0);
         }
         // Restore Preserved Inputs
-        if(PFilename.toUpperCase() == CurrentTemplateFilename.toUpperCase()) {
-        	document.getElementById('Editor_Input_Filename').value = "";
-        } else {
-        	document.getElementById('Editor_Input_Filename').value = PFilename;
-        }
-        document.getElementById('Editor_Input_HomeDirectory').value = PHomeDirectory;
+        for(i = 0; i < PreservedInputs.length; i++) {
+    		if(PreservedInputs[i].type == "checkbox") {
+    			document.getElementById(PreservedInputs[i].id).checked = PreservedInputsValues[i];
+    		} else {
+    			document.getElementById(PreservedInputs[i].id).value = PreservedInputsValues[i];
+    		}
+    	}
         // Apply Template
         switch(TemplateID) {
             case 1:
@@ -136,7 +177,7 @@
         CurrentTemplateID = TemplateID;
         CurrentTemplateFilename = "Sandbox ("+CurrentTemplateName+").wsb";
         document.getElementById('Editor_Input_Filename').setAttribute("placeholder",CurrentTemplateFilename);
-        Editor_Check();
+        Editor_Onchange();
     }
     function SetEditorInput(SVar,SValue) {
         if(document.getElementById('Editor_Input_'+SVar).type == "checkbox") {
@@ -149,21 +190,42 @@
             document.getElementById('Editor_Input_'+SVar).value = SValue;
         }
     }
+    function ParsePath(PPath) {
+    	PPath = PPath.replace(/\//g,"\\");
+    	while(PPath.endsWith("\\")) {
+    		PPath = PPath.slice(0, -1);
+    	}
+    	return PPath;
+    }
     
     // WSB Handlers
     function LoadWSB(LInput) {
         // First load original and check for error
-        var WSBXML = new DOMParser().parseFromString(LInput,"text/xml");
+        var WSBXML = new DOMParser().parseFromString(LInput.replace(/<\/?[A-Z,a-z,0-9]+.*?>/g, function (t) { return t.toLowerCase(); }),"text/xml");
         if(WSBXML.getElementsByTagName("parsererror").length > 0) {
             return [false, "XML parser error: "+WSBXML.getElementsByTagName("parsererror")[0].getElementsByTagName("div")[0].innerHTML+"."];
         } else {
-        // Then convert tags to lower case to continue
-            var ConfigXML = new DOMParser().parseFromString(LInput.replace(/<\/?[A-Z,a-z,0-9]+.*?>/g, function (t) { return t.toLowerCase(); }),"text/xml").getElementsByTagName("configuration")[0];
+            var ConfigXML = WSBXML.getElementsByTagName("configuration")[0];
         }
         if(ConfigXML === undefined) {
             return [false, "Cannot find &lt;Configuration&gt; tag."];
         } else {
-            ApplyTemplate(0);
+        	var LTemplateID = 0;
+        	// Read any <WSBEditorConfig> tag
+            var EditorXML = ConfigXML.getElementsByTagName("wsbeditorconfig")[0];
+        	if(EditorXML !== undefined) {
+        		var GetTemplateID = EditorXML.getElementsByTagName("templateid");
+        		if(GetTemplateID.length > 0) {
+            		LTemplateID = GetTemplateID[0].innerHTML;
+        		}
+        		var GetHomeDirectory = EditorXML.getElementsByTagName("homedirectory");
+        		if(GetHomeDirectory.length > 0) {
+        			document.getElementById('Editor_Input_HomeDirectory').value = ParsePath(GetHomeDirectory[0].innerHTML);
+        		}
+        	}
+        	// Apply template
+        	ApplyTemplate(parseInt(LTemplateID));
+        	// Load config
             var LoadWSBWarnings = new Array();
             function EnableDisableDefault(ETag) {
                 var GetFromXML = ConfigXML.getElementsByTagName(ETag.toLowerCase());
@@ -213,9 +275,9 @@
             DefaultDisable("ClipboardRedirection");
             EnableDisableDefault("ProtectedClient");
             // MemoryInMB
-            var MemoryInMB = ConfigXML.getElementsByTagName("memoryinmb");
-            if(MemoryInMB.length > 0 && MemoryInMB[0].innerHTML != "") {
-                MemoryInMB = MemoryInMB[0].innerHTML;
+            var GetMemoryInMB = ConfigXML.getElementsByTagName("memoryinmb");
+            if(GetMemoryInMB.length > 0 && GetMemoryInMB[0].innerHTML != "") {
+                var MemoryInMB = GetMemoryInMB[0].innerHTML;
                 if(isNaN(MemoryInMB) == true) {
                     LoadWSBWarnings.push("&lt;MemoryInMB&gt; must be a positive integer; invalid value \""+MemoryInMB+"\" ignored.");
                 } else {
@@ -240,10 +302,66 @@
                 }
             }
             SetEditorInput("LogonCommand",LogonCommand);
+            // MappedFolders
+            var GetMappedFolders = ConfigXML.getElementsByTagName("mappedfolder");
+            var HomeDirectory = document.getElementById('Editor_Input_HomeDirectory').value.toLowerCase();
+            for(i = 0; i < GetMappedFolders.length; i++) {
+            	var GetHostFolder = GetMappedFolders[i].getElementsByTagName("hostfolder");
+            	if(GetHostFolder.length > 0 && GetHostFolder[0].innerHTML != "") {
+            		var HostFolder = ParsePath(GetHostFolder[0].innerHTML);
+					var GetSandboxFolder = GetMappedFolders[i].getElementsByTagName("sandboxfolder");
+					if(GetSandboxFolder.length > 0) {
+						var SandboxFolder = ParsePath(GetSandboxFolder[0].innerHTML);
+					} else {
+						var SandboxFolder = "";
+					}
+					var UserFolders = ["Desktop", "Downloads", "Documents", "Pictures", "Music"];
+					var CorrespondingUserFolder = "";
+					for(j = 0; j < UserFolders.length; j++) {
+						// Guess HomeDirectory if empty
+						if(HomeDirectory == "") {
+							if(HostFolder.toLowerCase().endsWith("\\"+UserFolders[j].toLowerCase()) == true) {
+								HomeDirectory = HostFolder.slice(0, -UserFolders[j].length-1);
+								SetEditorInput("HomeDirectory",HomeDirectory);
+								LoadWSBWarnings.push("Home Directory is assumed to be "+HomeDirectory+".");
+							}
+						}
+						// Check if corresponds to a user folder
+						if(HostFolder.toLowerCase() == HomeDirectory.toLowerCase()+"\\"+UserFolders[j].toLowerCase() && SandboxFolder.toLowerCase() == SandboxHomeDirectory.toLowerCase()+"\\"+UserFolders[j].toLowerCase()) {
+							CorrespondingUserFolder = UserFolders[j];
+						}
+					}
+					if(CorrespondingUserFolder != "") {
+						var TargetCheckboxID = "MappedUserFolders_"+CorrespondingUserFolder;
+					} else {
+					}
+					// Check readonly or not and set checkbox
+					SetEditorInput(TargetCheckboxID,1);
+					var GetReadOnly = GetMappedFolders[i].getElementsByTagName("readonly");
+					if(GetReadOnly.length > 0) {
+						switch(GetReadOnly[0].innerHTML.toLowerCase()) {
+							case "true":
+								SetEditorInput(TargetCheckboxID,2);
+								break;
+							case "false":
+								break;
+							case "":
+								break;
+							default:
+								LoadWSBWarnings.push("&lt;ReadOnly&gt; in &lt;MappedFolder&gt; must be \"true\" or \"false\"; invalid value \""+GetReadOnly[0].innerHTML+"\" ignored.");
+								break;
+						}
+					}
+            	}
+            	
+            }
+            Editor_Onchange();
             return [true,LoadWSBWarnings];
+            // If fatal error, return array(false,errormsg)
+            // If no fatal error, return array(true,warnings)
         }
     }
-    function GenerateWSB() {
+    function GenerateWSBXML(InclEditorXML) {
         var WSBXML = "<Configuration>%0D%0A";
         function EnableDisableDefault(ETag) {
             if(document.getElementById('Editor_Input_'+ETag).checked == true) {
@@ -286,19 +404,23 @@
         var MappedFoldersXML = "";
         var MappedUserFolders = document.querySelectorAll("input[name=Editor_Input_MappedUserFolders]:checked,input[name=Editor_Input_MappedUserFolders]:indeterminate");
 		for(var i=0; i < MappedUserFolders.length; i++) {
-			MappedFoldersXML += "        <MappedFolder>%0D%0A            <HostFolder>"+document.getElementById('Editor_Input_HomeDirectory').value+"\\"+MappedUserFolders[i].value+"</HostFolder>%0D%0A            <SandboxFolder>C:\\Users\\WDAGUtilityAccount\\"+MappedUserFolders[i].value+"</SandboxFolder>%0D%0A            <ReadOnly>"+MappedUserFolders[i].indeterminate+"</ReadOnly>%0D%0A        </MappedFolder>%0D%0A";
+			MappedFoldersXML += "        <MappedFolder>%0D%0A            <HostFolder>"+document.getElementById('Editor_Input_HomeDirectory').value+"\\"+MappedUserFolders[i].value+"</HostFolder>%0D%0A            <SandboxFolder>"+SandboxHomeDirectory+"\\"+MappedUserFolders[i].value+"</SandboxFolder>%0D%0A            <ReadOnly>"+MappedUserFolders[i].indeterminate+"</ReadOnly>%0D%0A        </MappedFolder>%0D%0A";
 		}
         if(MappedFoldersXML != "") {
             WSBXML += "    <MappedFolders>%0D%0A"+MappedFoldersXML+"    </MappedFolders>%0D%0A";
+        }
+        // WSBEditorConfig
+        if(InclEditorXML == true || document.getElementById('Editor_Input_EditorXML').checked == true) {
+        	WSBXML += "    <WSBEditorConfig>%0D%0A        <EditorVersion>"+EditorVersion+"</EditorVersion>%0D%0A        <EditorRelease>"+EditorRelease+"</EditorRelease>%0D%0A        <TemplateID>"+CurrentTemplateID+"</TemplateID>%0D%0A        <DownloadTime>"+Date.now()+"</DownloadTime>%0D%0A        <HomeDirectory>"+document.getElementById('Editor_Input_HomeDirectory').value+"</HomeDirectory>%0D%0A    </WSBEditorConfig>%0D%0A";
         }
         // End
         WSBXML += "</Configuration>";
         return WSBXML;
     }
     function DownloadFile() {
-        if(Editor_Check() == true) {
+        if(Editor_Onchange() == true) {
             var FileContainer = document.createElement("a");
-            FileContainer.href = 'data:text/xml;charset=utf-8,'+GenerateWSB();
+            FileContainer.href = 'data:text/xml;charset=utf-8,'+GenerateWSBXML();
             FileContainer.setAttribute("Download", document.getElementById('Editor_Input_Filename').value);
             FileContainer.style.display = 'none';
             document.body.appendChild(FileContainer);
@@ -362,6 +484,26 @@
         }, FloatBoxBuffer+200);
         FloatBoxBuffer = 200;
     }
+    function FloatBox_Welcome_Submit() {
+        // Restore Last Session
+        if(document.getElementById("FloatBox_Welcome_Input_Resume").checked == true) {
+            SetEditorInput("Filename",localStorage.getItem("WSBEditor_LastSession_Filename"));
+            var LoadResult = LoadWSB(localStorage.getItem("WSBEditor_LastSession_WSBXML"));
+            if(LoadResult[0] == false) {
+                ApplyTemplate(0);
+                ShowAlert("<p><b>Last session was not resumed because it was corrupted:</b> "+LoadResult[1],"Red");
+            }
+        } else {
+            ApplyTemplate(0);
+        }
+        // Set Editor Handlers
+        var Editor_Inputs = document.getElementById('Editor').querySelectorAll("input,select,textarea");
+        for (i = 0; i < Editor_Inputs.length; i++) {
+            Editor_Inputs[i].addEventListener('change', function() { Editor_Onchange() });
+        }
+        EditorInitiated = true;
+        HideFloatBox('Welcome');
+    }
     function FloatBox_Templates_Update() {
         switch (parseInt(document.querySelector('input[name=FloatBox_Templates_Template]:checked').value)) {
             case 1:
@@ -403,12 +545,12 @@
                 var LoadResult = LoadWSB(e.target.result);
                 if(LoadResult[0] == true) {
                     HideFloatBox("Open");
-                    document.getElementById('FloatBox_OpenWSBWarnings_Table').innerHTML = "<tbody></tbody>";
+                    document.getElementById('FloatBox_OpenWSBWarnings_TBody').innerHTML = "";
                     document.getElementById('Editor_Input_Filename').value = SelectedFile.name;
                     if(LoadResult[1].length != 0) {
                         ShowAlert("<p>There were warning(s) while opening <b>"+SelectedFile.name+"</b>.</p>","Yellow");
                         for(i = 0; i < LoadResult[1].length; i++) {
-                            document.getElementById('FloatBox_OpenWSBWarnings_Table').insertRow(-1).insertCell(0).innerHTML = LoadResult[1][i];
+                            document.getElementById('FloatBox_OpenWSBWarnings_TBody').insertRow(-1).insertCell(0).innerHTML = LoadResult[1][i];
                         }
                         document.getElementById('FloatBox_OpenWSBWarnings_Filename').innerHTML = SelectedFile.name;
                         ShowFloatBox("OpenWSBWarnings");
@@ -422,28 +564,10 @@
     	}
     }
     
-    function OnLoad() {
-        // Test JS
-        document.getElementById('FloatBox_Welcome_SubmitButton').disabled = false;
-        // Set Tristate Checkbox Handler
-        var Tristate_Checkboxes = document.getElementsByClassName("TristateCheckbox");
-        for (i = 0; i < Tristate_Checkboxes.length; i++) {
-            Tristate_Checkboxes[i].addEventListener('change', function() { Tristate_Next(this.id) });
-            Tristate_Edit(Tristate_Checkboxes[i].id,0);
-        }
-        // Set Onchange and Oninput Action for Editor
-        var Editor_Inputs = document.getElementById('Editor').querySelectorAll("input,select,textarea");
-        for (i = 0; i < Editor_Inputs.length; i++) {
-            Editor_Inputs[i].addEventListener('change', function() { Editor_Check() });
-        }
-        // 
-        var FloatBox_Templates_Inputs = document.getElementById('FloatBox_Templates').querySelectorAll("input");;
-        for (i = 0; i < FloatBox_Templates_Inputs.length; i++) {
-            FloatBox_Templates_Inputs[i].addEventListener('change', function() { FloatBox_Templates_Update() });
-        }
-        FloatBox_Templates_Update();
-        // Load Previous Session or Default
-        ApplyTemplate(0);
+    // Interface
+    function Editor_ShowAdvancedSettings() {
+    	document.getElementById('Editor_AdvancedSettings').style.display = 'block';
+    	document.getElementById('Editor_AdvancedSettingsLink').style.display = 'none';
     }
     function ShowAlert(Msg,Color) {
         var AlertBox = document.createElement("div");
@@ -462,6 +586,58 @@
         }
         document.getElementById('AlertList').prepend(AlertBox);
     }
+    
+    window.onload = function() {
+        // Test JS
+        document.getElementById('FloatBox_Welcome_SubmitButton').disabled = false;
+        // Set Tristate Checkbox Handler
+        var Tristate_Checkboxes = document.getElementsByClassName("TristateCheckbox");
+        for (i = 0; i < Tristate_Checkboxes.length; i++) {
+            Tristate_Checkboxes[i].addEventListener('change', function() { Tristate_Next(this.id) });
+            Tristate_Edit(Tristate_Checkboxes[i].id,0);
+        }
+        // Set Template List Handler
+        var FloatBox_Templates_Inputs = document.getElementById('FloatBox_Templates').querySelectorAll("input");;
+        for (i = 0; i < FloatBox_Templates_Inputs.length; i++) {
+            FloatBox_Templates_Inputs[i].addEventListener('change', function() { FloatBox_Templates_Update() });
+        }
+        FloatBox_Templates_Update();
+        // Restore Editor Settings
+        function RestoreEditorSettings(Rid) {
+        	var SettingsValue = localStorage.getItem("WSBEditor_EditorSettings_"+Rid);
+        	switch(SettingsValue) {
+        		case "true":
+        			SetEditorInput(Rid,true);
+        			break;
+        		case "false":
+        			SetEditorInput(Rid,false);
+        			break;
+        		case "":
+        			break;
+        		case null:
+        			break;
+        		default:
+        			SetEditorInput(Rid,SettingsValue);
+        	}
+        }
+        RestoreEditorSettings("PreserveEditorSettings");
+        RestoreEditorSettings("HomeDirectory");
+        RestoreEditorSettings("AutoSave");
+        RestoreEditorSettings("EditorXML");
+        // Check if any last session
+        if(localStorage.getItem("WSBEditor_LastSession_Filename") != "" && localStorage.getItem("WSBEditor_LastSession_Filename") != null) {
+            document.getElementById("FloatBox_Welcome_Input_Resume").disabled = false;
+            document.getElementById("FloatBox_Welcome_Input_Resume").checked = true;
+            var LastEditTime = new Date(parseInt(localStorage.getItem("WSBEditor_LastSession_LastEditTime")));
+            document.getElementById("FloatBox_Welcome_Input_Resume_Notes").innerHTML = "You last edited "+localStorage.getItem("WSBEditor_LastSession_Filename")+" at "+LastEditTime.toLocaleTimeString()+" on "+LastEditTime.toLocaleDateString()+".";
+        } else {
+            document.getElementById("FloatBox_Welcome_Input_Resume").checked = false;
+            document.getElementById("FloatBox_Welcome_Input_Resume").disabled = true;
+            if(localStorage.getItem("WSBEditor_EditorSettings_AutoSave") == "false") {
+            	document.getElementById("FloatBox_Welcome_Input_Resume_Notes").innerHTML = "No session available: AutoSave disabled.";
+            }
+        }
+    }
     window.onerror = function(errMsg, errURL, errLine, errCol, errObj) {
         if(errLine < 1) {
             var ShowMsg = "check console for details";
@@ -471,7 +647,9 @@
         ShowAlert('<p><b>JavaScript Error:</b> '+ShowMsg+'.</p><p>Please try again.  If the error persists, please refresh or <a href="https://github.com/leestevetk/WSBEditor/issues" target="_blank">report an issue</a>.</p>',"Red");
     }
     window.onbeforeunload = function() {
-        Editor_Check();
+        if(EditorInitiated == true) {
+            Editor_Onchange();
+        }
     }
 </script>
 <style>
@@ -744,7 +922,10 @@
     div#AlertList div.MessageBox {
         box-shadow: 0px 0px 10px #888;
     }
-    label.CheckboxContainer {
+    input[type=checkbox] {
+    	display: none;
+    }
+    input[type=checkbox] + label {
         display: inline-block;
         min-width: 150px;
         position: relative;
@@ -754,10 +935,7 @@
         user-select: none;
         vertical-align: text-top;
     }
-    label.CheckboxContainer input[type=checkbox] {
-        display: none;
-    }
-    label.CheckboxContainer span.Checkmark {
+    input[type=checkbox] + label span.Checkmark {
         position: absolute;
         top: 0;
         left: 0;
@@ -766,14 +944,17 @@
         background-color: #EEE;
         border: 1px #AAA solid;
     }
-    label.CheckboxContainer input[type=checkbox]:enabled:hover ~ span.Checkmark {
+    input[type=checkbox]:disabled + label {
+        opacity: 0.3;
+    }
+    input[type=checkbox]:enabled:hover + label span.Checkmark {
         background-color: #CCC;
     }
-    label.CheckboxContainer input[type=checkbox]:enabled:checked ~ span.Checkmark, label.CheckboxContainer input[type=checkbox]:enabled:indeterminate ~ span.Checkmark {
+    input[type=checkbox]:enabled:checked + label span.Checkmark, input[type=checkbox]:enabled:indeterminate + label span.Checkmark {
         background-color: #2196F3;
         border: 1px #0066CC solid;
     }
-    label.CheckboxContainer input[type=checkbox]:not(:indeterminate) ~ span.Checkmark:after {
+    input[type=checkbox]:not(:indeterminate) + label span.Checkmark:after {
         content: "";
         position: absolute;
         display: block;
@@ -785,7 +966,7 @@
         border-width: 0 3px 3px 0;
         transform: rotate(45deg);
     }
-    label.CheckboxContainer input[type=checkbox]:indeterminate ~ span.Checkmark:after {
+    input[type=checkbox]:indeterminate + label span.Checkmark:after {
         content: "";
         position: absolute;
         display: block;
@@ -802,7 +983,7 @@
         height: 100%;
         background-color: rgba(150, 150, 150, 0.50);
     }
-    form.FloatBox, form.FloatBoxHidden {
+    form.FloatBox {
         position: fixed;
         top: 0;
         left: 0;
@@ -815,9 +996,11 @@
         background-color: #FFF;
         box-shadow: 0px 0px 10px #888;
     }
-    form.FloatBoxHidden {
-    	display: none;
+    form.FloatBox.Hidden {
     	opacity: 0;
+    }
+    .Hidden {
+    	display: none;
     }
     p.FloatBoxFooter {
         text-align: right;
@@ -832,6 +1015,7 @@
     table.BorderTable {
         border: 1px #888 solid;
         margin-bottom: 12px;
+        font-size: 0.9em;
     }
     table.BorderTable td {
         padding: 5px;
@@ -842,14 +1026,14 @@
     table.BorderTable tbody {
         display: block;
         height: 100px;
-        width: 100%;
         overflow: auto;
+    }
+    table.BorderTable tbody tr {
+        display: block;
+        width: 100%;
     }
     table.BorderTable tbody tr:nth-child(odd) {
         background-color: #EEE;
-    }
-    table.BorderTable tbody tr:hover {
-        background-color: #CCC;
     }
     @media only screen and (min-width: 600px) {
 		table.EditorTable td {
@@ -870,13 +1054,13 @@
     }
 </style>
 </head>
-<body onload="javascript:OnLoad()">
+<body>
     <form id="Editor" action="javascript:DownloadFile()">
         <table class="EditorTable">
             <tr id="EditorRow_Filename">
                 <td>Filename</td>
                 <td>
-                    <input type="text" id="Editor_Input_Filename" />
+                    <input type="text" id="Editor_Input_Filename" class="PreservedInput" />
                 </td>
             </tr>
             <tr id="EditorRow_Template">
@@ -889,8 +1073,8 @@
             <tr id="EditorRow_Graphics">
                 <td>Graphics</td>
                 <td>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" id="Editor_Input_vGPU" />
+                    <input type="Checkbox" id="Editor_Input_vGPU" />
+                    <label for="Editor_Input_vGPU">
                         <span class="Checkmark"></span>
                         Enable vGPU
                         <span class="h6span">Enable hardware acceleration in Sandbox.</span>
@@ -907,8 +1091,8 @@
             <tr id="EditorRow_Network">
                 <td>Network</td>
                 <td>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" id="Editor_Input_Networking" />
+                	<input type="Checkbox" id="Editor_Input_Networking" />
+                    <label for="Editor_Input_Networking">
                         <span class="Checkmark"></span>
                         Connect Sandbox to Network
                         <span class="h6span">Enable networking in Sandbox via Host's default NAT switch.</span>
@@ -919,23 +1103,23 @@
                 <td>Shared Resources</td>
                 <td>
                     Sandbox will share Host's:<br /><br />
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" id="Editor_Input_AudioInput" />
+                    <input type="Checkbox" id="Editor_Input_AudioInput" />
+                    <label for="Editor_Input_AudioInput">
                         <span class="Checkmark"></span>
                         Microphone(s)
                     </label>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" id="Editor_Input_VideoInput" />
+                	<input type="Checkbox" id="Editor_Input_VideoInput" />
+                    <label for="Editor_Input_VideoInput">
                         <span class="Checkmark"></span>
                         Camera(s)
                     </label>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" id="Editor_Input_PrinterRedirection" />
+                    <input type="Checkbox" id="Editor_Input_PrinterRedirection" />
+                    <label for="Editor_Input_PrinterRedirection">
                         <span class="Checkmark"></span>
                         Printer(s)
                     </label>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" id="Editor_Input_ClipboardRedirection" />
+                    <input type="Checkbox" id="Editor_Input_ClipboardRedirection" />
+                    <label for="Editor_Input_ClipboardRedirection">
                         <span class="Checkmark"></span>
                         Clipboard
                         <span class="h6span">Allow copy-and-paste between the Sandbox and the Host.<br />If <a href="#Editor_Input_ProtectedClient">Protected Client</a> is also enabled, you can only copy-and-paste text (but not files).</span>
@@ -947,36 +1131,36 @@
                 <td>
                     <label>
                         Home Directory:<br />
-                        <input type="text" id="Editor_Input_HomeDirectory" />
+                        <input type="text" id="Editor_Input_HomeDirectory" class="PreservedInput" />
                         <span class="h6span">By default, your Home Directory is "C:\Users\{Your Username}".<br />To check, open Command Prompt and type "echo %userprofile%" (<a href="https://github.com/leestevetk/WSBEditor/wiki/Home-Directory" target="_blank">learn more</a>).</span>
                     </label>
                     <br />
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Desktop" value="Desktop" class="TristateCheckbox" />
+                    <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Desktop" value="Desktop" class="TristateCheckbox" />
+                    <label for="Editor_Input_MappedUserFolders_Desktop">
                         <span class="Checkmark"></span>
                         Desktop
                         <span class="h6span" id="Editor_Input_MappedUserFolders_Desktop_Notes"></span>
                     </label>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Downloads" value="Downloads" class="TristateCheckbox" />
+                    <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Downloads" value="Downloads" class="TristateCheckbox" />
+                    <label for="Editor_Input_MappedUserFolders_Downloads">
                         <span class="Checkmark"></span>
                         Downloads
                         <span class="h6span" id="Editor_Input_MappedUserFolders_Downloads_Notes"></span>
                     </label>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Documents" value="Documents" class="TristateCheckbox" />
+                    <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Documents" value="Documents" class="TristateCheckbox" />
+                    <label for="Editor_Input_MappedUserFolders_Documents">
                         <span class="Checkmark"></span>
                         Documents
                         <span class="h6span" id="Editor_Input_MappedUserFolders_Documents_Notes"></span>
                     </label>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Pictures" value="Pictures" class="TristateCheckbox" />
+                    <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Pictures" value="Pictures" class="TristateCheckbox" />
+                    <label for="Editor_Input_MappedUserFolders_Pictures">
                         <span class="Checkmark"></span>
                         Pictures
                         <span class="h6span" id="Editor_Input_MappedUserFolders_Pictures_Notes"></span>
                     </label>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Music" value="Music" class="TristateCheckbox" />
+                    <input type="Checkbox" name="Editor_Input_MappedUserFolders" id="Editor_Input_MappedUserFolders_Music" value="Music" class="TristateCheckbox" />    
+                    <label for="Editor_Input_MappedUserFolders_Music">
                         <span class="Checkmark"></span>
                         Music
                         <span class="h6span" id="Editor_Input_MappedUserFolders_Music_Notes"></span>
@@ -984,11 +1168,25 @@
                     <h6>Tap once to enable read/write access, tap again to map as read-only.</h6>
                 </td>
             </tr>
+            <tr id="EditorRow_MappedFoldersOthers">
+                <td>Mapped Folders (Others)</td>
+                <td>
+                    <input type="Checkbox" name="MappedFoldersOthers" id="Editor_Input_MappedFoldersOthers_1" class="TristateCheckbox" />    
+                    <label for="Editor_Input_MappedFoldersOthers_1">
+                        <span class="Checkmark"></span>
+                        <span class="h6span"><b>Folder #1</b> - <span id="Editor_Input_MappedFoldersOthers_1_Notes"></span></span>
+                        <span class="h6span">Host Folder:</span>
+                        <input type="text" placeholder="Host Folder" />
+                        <span class="h6span">Sandbox Folder:</span>
+                        <input type="text" placeholder="Sandbox Folder" />
+                    </label>
+                </td>
+            </tr>
             <tr id="EditorRow_Security">
                 <td>Security</td>
                 <td>
-                    <label class="CheckboxContainer">
-                        <input type="Checkbox" id="Editor_Input_ProtectedClient" />
+                	<input type="Checkbox" id="Editor_Input_ProtectedClient" />
+                    <label for="Editor_Input_ProtectedClient">
                         <span class="Checkmark"></span>
                         Enable Protected Client Mode
                         <span class="h6span">Enable extra security mitigations to the RDP connection to Sandbox.</span>
@@ -1002,6 +1200,35 @@
                     <h6>Enter one command on each line.  These commands will automatically be invoked as Sandbox user in the Sandbox after log-on.</h6>
                 </td>
             </tr>
+            <tr id="EditorRow_Advanced">
+                <td>Advanced</td>
+                <td>
+                	<a href="javascript:Editor_ShowAdvancedSettings()" id="Editor_AdvancedSettingsLink">
+                		Show Advanced Settings
+                		<span class="h6span">Configure AutoSave and other settings relating to how WSBEditor behaves.</span>
+                	</a>
+                	<div id="Editor_AdvancedSettings" style="display:none">
+						<input type="Checkbox" id="Editor_Input_PreserveEditorSettings" class="PreservedInput" checked="checked" />
+						<label for="Editor_Input_PreserveEditorSettings">
+							<span class="Checkmark"></span>
+							Preserve Editor Settings
+							<span class="h6span">Preserve your WSBEditor settings (e.g. home directory path, recent folders, advanced settings) across sessions.  This setting itself ("Preserve Editor Settings") will be preserved in any event.</span>
+						</label>
+						<input type="Checkbox" id="Editor_Input_AutoSave" class="PreservedInput" checked="checked" />
+						<label for="Editor_Input_AutoSave">
+							<span class="Checkmark"></span>
+							Enable AutoSave
+							<span class="h6span">Automatically save the latest session to your browser. This allows you to resume your session when you open WSBEditor again, even if you do not download the configuration file. Disabling AutoSave will also delete any saved session.</span>
+						</label>
+						<input type="Checkbox" id="Editor_Input_EditorXML" class="PreservedInput" checked="checked" />
+						<label for="Editor_Input_EditorXML">
+							<span class="Checkmark"></span>
+							Include Editor Information
+							<span class="h6span">Generated file will include your selected template, home directory path and other information that can be loaded when you open the file with WSBEditor again.</span>
+						</label>
+					</div>
+                </td>
+            </tr>
         </table>
         <table class="Footer" id="Editor_Footer">
             <tr>
@@ -1011,17 +1238,22 @@
         </table>
     </form>
     <div id="FloatBoxBackground" class="FloatBoxBackground"></div>
-    <form id="FloatBox_Welcome" class="FloatBox BlueBorder" action="javascript:HideFloatBox('Welcome')">
+    <form id="FloatBox_Welcome" class="FloatBox BlueBorder" action="javascript:FloatBox_Welcome_Submit()">
         <h2>Welcome to WSBEditor!</h2>
         <p><b>WSBEditor</b> is a web-based <a href="https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-overview" target="_blank">Windows Sandbox</a> configuration file (*.wsb) editor.</p>
+        <input type="Checkbox" id="FloatBox_Welcome_Input_Resume" disabled="disabled" />
+        <label for="FloatBox_Welcome_Input_Resume">
+            <span class="Checkmark"></span>
+            Resume Last Session
+            <span class="h6span" id="FloatBox_Welcome_Input_Resume_Notes">No session available.</span>
+        </label>
         <h6>This software comes with ABSOLUTELY NO WARRANTY.</h6>
         <h6>By proceeding, you accept the <a href="https://www.gnu.org/licenses/gpl-3.0.txt" target="_blank">GNU General Public License</a>.</h6>
         <h6>&copy; Copyright 2020 <a href="https://leesteve.tk/" target="_blank">Steve's Toolkit</a> (<a href="https://github.com/leestevetk/WSBEditor" target="_blank">GitHub</a>)</h6>
         <noscript>You must enable JavaScript to continue.</noscript>
-        <br />
         <p class="FloatBoxFooter"><input type="submit" value="Continue" id="FloatBox_Welcome_SubmitButton" disabled="disabled" /></p>
     </form>
-    <form id="FloatBox_Templates" class="FloatBoxHidden BlueBorder" action="javascript:FloatBox_Templates_Submit()">
+    <form id="FloatBox_Templates" class="FloatBox Hidden BlueBorder" action="javascript:FloatBox_Templates_Submit()">
         <h2>Templates</h2>
         <table class="RadioDescription">
             <tr>
@@ -1044,26 +1276,25 @@
         </table>
         <p class="FloatBoxFooter"><input type="submit" value="Apply" /><input type="button" onclick="javascript:FloatBox_Templates_Cancel()" value="Cancel" /></p>
     </form>
-    <form id="FloatBox_Reset" class="FloatBoxHidden YellowBorder" action="javascript:FloatBox_Reset_Submit()">
+    <form id="FloatBox_Reset" class="FloatBox Hidden YellowBorder" action="javascript:FloatBox_Reset_Submit()">
         <h2>Reset to Template Defaults</h2>
         <p>This will revert all changes and reset all settings to their default values in the <b id="FloatBox_Reset_TemplateName"></b> template.</p>
         <h6>Mapped Folders will be deselected but not reset.</h6>
         <p class="FloatBoxFooter"><input type="submit" value="Reset" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Reset')" /></p>
     </form>
-    <form id="FloatBox_Open" class="FloatBoxHidden BlueBorder" action="javascript:document.getElementById('FloatBox_Open_Input').click()">
+    <form id="FloatBox_Open" class="FloatBox Hidden BlueBorder" action="javascript:document.getElementById('FloatBox_Open_Input').click()">
         <h2>Open Configuration File</h2>
         <p><b>This will overwrite any changes you have made on this page.</b></p>
-        <h6>To keep your changes, <a href="javascript:DownloadFile()">download a copy</a> or open your configuration file in a <a href="?" target="_blank">new window</a>.</h6>
+        <h6>To keep your changes, <a href="javascript:DownloadFile()">download a copy</a>.</h6>
         <h6>Choose your configuration file (*.wsb) to continue.</h6>
-        <br />
         <input type="file" id="FloatBox_Open_Input" accept=".wsb" onchange="javascript:OpenWSBFile()" />
         <p class="FloatBoxFooter"><input type="submit" value="Choose" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Open')" /></p>
     </form>
-    <form id="FloatBox_OpenWSBWarnings" class="FloatBoxHidden YellowBorder" action="javascript:HideFloatBox('OpenWSBWarnings')">
+    <form id="FloatBox_OpenWSBWarnings" class="FloatBox Hidden YellowBorder" action="javascript:HideFloatBox('OpenWSBWarnings')">
         <h2>File Warnings</h2>
-        <p>We encountered these warnings while opening <b id="FloatBox_OpenWSBWarnings_Filename"></b>:</p>
-        <table class="BorderTable" id="FloatBox_OpenWSBWarnings_Table"><tbdoy></tbdoy></table>
-        <h6>Your file has been successfully opened.</h6>
+        <p>We encountered some warnings while opening <b id="FloatBox_OpenWSBWarnings_Filename"></b>:</p>
+        <table class="BorderTable"><tbody id="FloatBox_OpenWSBWarnings_TBody"></tbody></table>
+        <h6>Other configuration options in the file have been loaded onto the editor.</h6>
         <p class="FloatBoxFooter"><input type="submit" value="Close" /></p>
     </form>
     <div id="AlertList">
