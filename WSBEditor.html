@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <!--
-    WSBEditor 0.3.0 (20200803)
+    WSBEditor 0.3.1 (20200803)
     Copyright (C) 2020  Steve's Toolkit
     Website: http://leesteve.tk/WSBEditor/
     GitHub: https://github.com/leestevetk/WSBEditor/
@@ -26,7 +26,7 @@
 <script>
     var CurrentTemplateID = 0;
     var CurrentTemplateName, CurrentTemplateFilename = "";
-    var EditorVersion = "0.3.0";
+    var EditorVersion = "0.3.1";
     var EditorRelease = 20200803;
     var EditorInitiated = false;
     var SandboxHomeDirectory = "C:\\Users\\WDAGUtilityAccount";
@@ -1004,11 +1004,11 @@
         margin-left: auto;
         margin-right: auto;
     }
-    table.EditorTable td:not(table.BorderTable td) {
+    table.EditorTable>tbody>tr>td {
         padding: 10px;
         vertical-align: top;
     }
-    table.EditorTable td:nth-child(1):not(table.BorderTable td) {
+    table.EditorTable>tbody>tr>td:nth-child(1) {
         font-weight: bold;
         text-align: right;
         width: 20%;
@@ -1131,18 +1131,18 @@
         min-width: 0;
     }
     table#Editor_MappedFoldersOthers_Table td:not(:first-child) {
-        width: calc(50%-30px);
+        width: calc(50% - 30px);
     }
     @media only screen and (min-width: 600px) {
-		table.EditorTable td:not(table.BorderTable td) {
+		table.EditorTable>tbody>tr>td {
 			padding-left: 25px;
             padding-right: 25px;
 		}
-		table.EditorTable td:nth-child(1):not(table.BorderTable td) {
+		table.EditorTable>tbody>tr>td:nth-child(1) {
 			border-right: 3px solid #CCC;
 			color: #666;
 		}
-		table.EditorTable tr:hover:not(.EditorRowErr) td:nth-child(1):not(table.BorderTable td) {
+		table.EditorTable>tbody>tr:hover:not(.EditorRowErr)>td:nth-child(1) {
 			border-right: 3px solid #444;
 			color: #000;
 		}
@@ -1394,7 +1394,7 @@
     <form id="FloatBox_Reset" class="FloatBox Hidden YellowBorder" action="javascript:FloatBox_Reset_Submit()">
         <h2>Reset to Template Defaults</h2>
         <p>This will revert all changes and reset all settings to their default values in the <b id="FloatBox_Reset_TemplateName"></b> template.</p>
-        <h6>This will also empty your Mapped Folders list.</h6>
+        <h6>This will also empty your Mapped Folders (Others) list.</h6>
         <p class="FloatBoxFooter"><input type="submit" value="Reset" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Reset')" /></p>
     </form>
     <form id="FloatBox_Open" class="FloatBox Hidden BlueBorder" action="javascript:document.getElementById('FloatBox_Open_Input').click()">
