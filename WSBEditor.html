@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <!--
-    WSBEditor 0.3.0 (20200801)
+    WSBEditor 0.3.0 (20200803)
     Copyright (C) 2020  Steve's Toolkit
     Website: http://leesteve.tk/WSBEditor/
     GitHub: https://github.com/leestevetk/WSBEditor/
@@ -27,7 +27,7 @@
     var CurrentTemplateID = 0;
     var CurrentTemplateName, CurrentTemplateFilename = "";
     var EditorVersion = "0.3.0";
-    var EditorRelease = 20200801;
+    var EditorRelease = 20200803;
     var EditorInitiated = false;
     var SandboxHomeDirectory = "C:\\Users\\WDAGUtilityAccount";
     
@@ -129,6 +129,13 @@
         var Reset_Tristates = document.getElementsByClassName("TristateCheckbox");
         for(i = 0; i < Reset_Tristates.length; i++) {
             Tristate_Edit(Reset_Tristates[i].id, 0);
+        }
+        var MappedFoldersOthers = document.getElementById("Editor_MappedFoldersOthers_Tbody").querySelectorAll("input[type=checkbox]");
+        for(i = 0; i < MappedFoldersOthers.length; i++) {
+            SetEditorInput("MappedFoldersOthers_"+i,0);
+            SetEditorInput("MappedFoldersOthers_"+i+"_HostFolder","");
+            SetEditorInput("MappedFoldersOthers_"+i+"_SandboxFolder","");
+            Editor_MappedFoldersOthers_Onfocusout(i);
         }
         // Restore Preserved Inputs
         for(i = 0; i < PreservedInputs.length; i++) {
@@ -308,6 +315,7 @@
             for(i = 0; i < GetMappedFolders.length; i++) {
             	var GetHostFolder = GetMappedFolders[i].getElementsByTagName("hostfolder");
             	if(GetHostFolder.length > 0 && GetHostFolder[0].innerHTML != "") {
+                    var MappedFoldersOthers_Tbody = document.getElementById('Editor_MappedFoldersOthers_Tbody');
             		var HostFolder = ParsePath(GetHostFolder[0].innerHTML);
 					var GetSandboxFolder = GetMappedFolders[i].getElementsByTagName("sandboxfolder");
 					if(GetSandboxFolder.length > 0) {
@@ -334,6 +342,11 @@
 					if(CorrespondingUserFolder != "") {
 						var TargetCheckboxID = "MappedUserFolders_"+CorrespondingUserFolder;
 					} else {
+                        var TargetCheckboxID = "MappedFoldersOthers_"+MappedFoldersOthers_Tbody.rows.length;
+                        Editor_MappedFoldersOthers_AppendRow(HostFolder,SandboxFolder);
+                        for(j = 0; j < MappedFoldersOthers_Tbody.rows.length; j++) {
+                            Editor_MappedFoldersOthers_Onfocusout(j);
+                        }
 					}
 					// Check readonly or not and set checkbox
 					SetEditorInput(TargetCheckboxID,1);
@@ -362,6 +375,7 @@
         }
     }
     function GenerateWSBXML(InclEditorXML) {
+        // No input checks here
         var WSBXML = "<Configuration>%0D%0A";
         function EnableDisableDefault(ETag) {
             if(document.getElementById('Editor_Input_'+ETag).checked == true) {
@@ -403,9 +417,20 @@
         // MappedFolders
         var MappedFoldersXML = "";
         var MappedUserFolders = document.querySelectorAll("input[name=Editor_Input_MappedUserFolders]:checked,input[name=Editor_Input_MappedUserFolders]:indeterminate");
-		for(var i=0; i < MappedUserFolders.length; i++) {
+		for(i=0; i < MappedUserFolders.length; i++) {
 			MappedFoldersXML += "        <MappedFolder>%0D%0A            <HostFolder>"+document.getElementById('Editor_Input_HomeDirectory').value+"\\"+MappedUserFolders[i].value+"</HostFolder>%0D%0A            <SandboxFolder>"+SandboxHomeDirectory+"\\"+MappedUserFolders[i].value+"</SandboxFolder>%0D%0A            <ReadOnly>"+MappedUserFolders[i].indeterminate+"</ReadOnly>%0D%0A        </MappedFolder>%0D%0A";
 		}
+        var MappedFoldersOthers = document.getElementById("Editor_MappedFoldersOthers_Tbody").querySelectorAll("input[type=checkbox]");
+        for(i=0; i < MappedFoldersOthers.length; i++) {
+            var HostFolder = document.getElementById("Editor_Input_MappedFoldersOthers_"+i+"_HostFolder").value;
+            var SandboxFolder = document.getElementById("Editor_Input_MappedFoldersOthers_"+i+"_SandboxFolder").value;
+            if(SandboxFolder == "") {
+                SandboxFolder = DefaultSandboxFolder(HostFolder);
+            }
+            if((MappedFoldersOthers[i].checked == true || MappedFoldersOthers[i].indeterminate == true) && HostFolder != "") {
+                MappedFoldersXML += "        <MappedFolder>%0D%0A            <HostFolder>"+HostFolder+"</HostFolder>%0D%0A            <SandboxFolder>"+SandboxFolder+"</SandboxFolder>%0D%0A            <ReadOnly>"+MappedFoldersOthers[i].indeterminate+"</ReadOnly>%0D%0A        </MappedFolder>%0D%0A";
+            }
+        }
         if(MappedFoldersXML != "") {
             WSBXML += "    <MappedFolders>%0D%0A"+MappedFoldersXML+"    </MappedFolders>%0D%0A";
         }
@@ -545,12 +570,12 @@
                 var LoadResult = LoadWSB(e.target.result);
                 if(LoadResult[0] == true) {
                     HideFloatBox("Open");
-                    document.getElementById('FloatBox_OpenWSBWarnings_TBody').innerHTML = "";
+                    document.getElementById('FloatBox_OpenWSBWarnings_Table').innerHTML = "";
                     document.getElementById('Editor_Input_Filename').value = SelectedFile.name;
                     if(LoadResult[1].length != 0) {
                         ShowAlert("<p>There were warning(s) while opening <b>"+SelectedFile.name+"</b>.</p>","Yellow");
                         for(i = 0; i < LoadResult[1].length; i++) {
-                            document.getElementById('FloatBox_OpenWSBWarnings_TBody').insertRow(-1).insertCell(0).innerHTML = LoadResult[1][i];
+                            document.getElementById('FloatBox_OpenWSBWarnings_Table').insertRow(-1).insertCell(0).innerHTML = LoadResult[1][i];
                         }
                         document.getElementById('FloatBox_OpenWSBWarnings_Filename').innerHTML = SelectedFile.name;
                         ShowFloatBox("OpenWSBWarnings");
@@ -568,6 +593,57 @@
     function Editor_ShowAdvancedSettings() {
     	document.getElementById('Editor_AdvancedSettings').style.display = 'block';
     	document.getElementById('Editor_AdvancedSettingsLink').style.display = 'none';
+    }
+    function Editor_MappedFoldersOthers_AppendRow(EHostFolder,ESandboxFolder) {
+        var Tbody = document.getElementById('Editor_MappedFoldersOthers_Tbody');
+        var NewRow = document.createElement("tr");
+        var RowIndex = Tbody.rows.length;
+        NewRow.innerHTML = Tbody.rows[0].innerHTML.replace(/0/g,RowIndex);
+        Tbody.appendChild(NewRow);
+        document.getElementById("Editor_Input_MappedFoldersOthers_"+RowIndex).addEventListener("change", function() { Tristate_Next(this.id) });
+        if(EHostFolder !== undefined) {
+            SetEditorInput("MappedFoldersOthers_"+RowIndex+"_HostFolder",EHostFolder);
+        }
+        if(ESandboxFolder !== undefined) {
+            SetEditorInput("MappedFoldersOthers_"+RowIndex+"_SandboxFolder",ESandboxFolder);
+        }
+        Editor_MappedFoldersOthers_Oninput(RowIndex);
+    }
+    function Editor_MappedFoldersOthers_Oninput(Eid) {
+        var HostFolder = document.getElementById("Editor_Input_MappedFoldersOthers_"+Eid+"_HostFolder");
+        var SandboxFolder = document.getElementById("Editor_Input_MappedFoldersOthers_"+Eid+"_SandboxFolder");
+        var Tbody = document.getElementById('Editor_MappedFoldersOthers_Tbody');
+        if(HostFolder.value != "" || SandboxFolder.value != "") {
+            // Create new row if last row
+            if(Eid == Tbody.rows.length-1) {
+                Editor_MappedFoldersOthers_AppendRow();
+            }
+        }
+        if(HostFolder.value == "") {
+            SandboxFolder.setAttribute("placeholder","Sandbox Folder");
+        } else {
+            // Set Read/write and SandboxFolder placeholder if not empty
+            var Checkbox = document.getElementById("Editor_Input_MappedFoldersOthers_"+Eid);
+            if(Checkbox.checked == false && Checkbox.indeterminate == false) {
+                SetEditorInput("MappedFoldersOthers_"+Eid,1);
+            }
+            SandboxFolder.setAttribute("placeholder",DefaultSandboxFolder(HostFolder.value));
+        }
+    }
+    function Editor_MappedFoldersOthers_Onfocusout(Eid) {
+        var HostFolder = document.getElementById("Editor_Input_MappedFoldersOthers_"+Eid+"_HostFolder");
+        var SandboxFolder = document.getElementById("Editor_Input_MappedFoldersOthers_"+Eid+"_SandboxFolder");
+        var Tbody = document.getElementById('Editor_MappedFoldersOthers_Tbody');
+        // Parse Paths
+        HostFolder.value = ParsePath(HostFolder.value);
+        SandboxFolder.value = ParsePath(SandboxFolder.value);
+        // Remove row if empty
+        if(HostFolder.value == "" && SandboxFolder.value == "" && Eid != Tbody.rows.length-1) {
+            Tbody.rows[Eid].style.display = 'none';
+        }
+    }
+    function DefaultSandboxFolder(HostFolder) {
+        return SandboxHomeDirectory+"\\Desktop\\"+ParsePath(HostFolder).substring(HostFolder.lastIndexOf("\\")+1);
     }
     function ShowAlert(Msg,Color) {
         var AlertBox = document.createElement("div");
@@ -703,6 +779,36 @@
         padding: 0;
         margin: 0;
     }
+    .RedBorder {
+        border-left: 5px solid #ff1919;
+    }
+    .RedBack {
+        color: #ff1919;
+        background-color: rgba(242, 172, 172, 0.95);
+    }
+    .YellowBorder {
+        border-left: 5px solid #D4A017;
+    }
+    .YellowBack {
+        color: #D4A017;
+        background-color: rgb(255, 253, 208, 0.95);
+    }
+    .BlueBorder {
+        border-left: 5px solid #3399FF;
+    }
+    .BlueBack {
+        background-color: rgba(181, 215, 251, 0.95);
+    }
+    .GreenBorder {
+        border-left: 5px solid #265323;
+    }
+    .GreenBack {
+        color: #265323;
+        background-color: rgb(138, 213, 93, 0.95);
+    }
+    .Hidden {
+    	display: none;
+    }
     @keyframes FadeIn {
         0% {display: none; opacity: 0}
         20% {display: none; opacity: 0}
@@ -715,44 +821,59 @@
         80% {display: none; opacity: 0}
         100% {display: none; opacity: 0}
     }
-    table.EditorTable {
-        padding: 20px 10px 100px 10px;
-        max-width: 800px;
-        margin-left: auto;
-        margin-right: auto;
+    input[type=checkbox] {
+    	display: none;
     }
-    table.EditorTable td {
-        padding: 10px;
-        vertical-align: top;
+    input[type=checkbox] + label {
+        display: inline-block;
+        min-width: 150px;
+        position: relative;
+        padding: 0px 0px 0px 35px;
+        margin: 0px 15px 12px 0px;
+        cursor: pointer;
+        user-select: none;
+        vertical-align: text-top;
     }
-    table.EditorTable td:nth-child(1) {
-        font-weight: bold;
-        text-align: right;
-        width: 20%;
+    input[type=checkbox] + label span.Checkmark {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 27px;
+        width: 27px;
+        background-color: #EEE;
+        border: 1px #AAA solid;
     }
-    table.EditorTable tr.EditorRowErr td:nth-child(1) {
-    	color: #ff1919;
+    input[type=checkbox]:disabled + label {
+        opacity: 0.3;
     }
-    table.Footer, table.FooterRed {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        height: auto;
-        padding: 10px 15px;
-        font-size: 0.8em;
+    input[type=checkbox]:enabled:hover + label span.Checkmark {
+        background-color: #CCC;
     }
-    table.Footer {
-        border-top: 1px #888 solid;
-        background-color: rgba(240, 240, 240, 0.95);
-        color: #000;
+    input[type=checkbox]:enabled:checked + label span.Checkmark, input[type=checkbox]:enabled:indeterminate + label span.Checkmark {
+        background-color: #2196F3;
+        border: 1px #0066CC solid;
     }
-    table.FooterRed {
-        border-top: 1px #ff1919 solid;
-        background-color: rgba(242, 172, 172, 0.95);
-        color: #ff1919;
+    input[type=checkbox]:not(:indeterminate) + label span.Checkmark:after {
+        content: "";
+        position: absolute;
+        display: block;
+        left: 9px;
+        top: 5px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 3px 3px 0;
+        transform: rotate(45deg);
     }
-    table.Footer td:nth-child(2), table.FooterRed td:nth-child(2) {
-        text-align: right;
+    input[type=checkbox]:indeterminate + label span.Checkmark:after {
+        content: "";
+        position: absolute;
+        display: block;
+        left: 5px;
+        top: 10px;
+        width: 15px;
+        height: 5px;
+        background-color: #FFF;
     }
     input[type=file] {
         display: none;
@@ -777,6 +898,8 @@
     }
     input[type=text] {
         width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     input[type="text"]:enabled:hover, input[type="text"]:enabled:focus, input[type="number"]:enabled:hover, input[type="number"]:enabled:focus {
         border-color: #222;
@@ -788,7 +911,9 @@
     }
     textarea {
         width: 100%;
+        height: 100px;
         min-height: 100px;
+        max-height: 500px;
         resize: vertical;
         border: 2px #888 solid;
         color: #222;
@@ -796,7 +921,7 @@
         padding: 5px;
     }
     textarea:enabled:hover, textarea:enabled:focus {
-        border-color: #222;
+        border-color: #444;
         background-color: #FFF;
     }
     input[type="button"], input[type="submit"] {
@@ -873,33 +998,44 @@
         margin: 10px 0px;
         overflow: auto;
     }
-    .RedBorder {
-        border-left: 5px solid #ff1919;
+    table.EditorTable {
+        padding: 20px 10px 100px 10px;
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
     }
-    .RedBack {
-        color: #ff1919;
+    table.EditorTable td:not(table.BorderTable td) {
+        padding: 10px;
+        vertical-align: top;
+    }
+    table.EditorTable td:nth-child(1):not(table.BorderTable td) {
+        font-weight: bold;
+        text-align: right;
+        width: 20%;
+    }
+    table.EditorTable tr.EditorRowErr td:nth-child(1) {
+    	color: #ff1919;
+    }
+    table.Footer, table.FooterRed {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        height: auto;
+        padding: 10px 15px;
+        font-size: 0.8em;
+    }
+    table.Footer {
+        border-top: 1px #888 solid;
+        background-color: rgba(240, 240, 240, 0.95);
+        color: #000;
+    }
+    table.FooterRed {
+        border-top: 1px #ff1919 solid;
         background-color: rgba(242, 172, 172, 0.95);
+        color: #ff1919;
     }
-    .YellowBorder {
-        border-left: 5px solid #D4A017;
-    }
-    .YellowBack {
-        color: #D4A017;
-        background-color: rgb(255, 253, 208, 0.95);
-    }
-    .BlueBorder {
-        border-left: 5px solid #3399FF;
-    }
-    .BlueBack {
-        background-color: rgba(181, 215, 251, 0.95);
-    }
-    .GreenBorder {
-        border-left: 5px solid #265323;
-    }
-    .GreenBack {
-        color: #265323;
-        background-color: rgb(138, 213, 93, 0.95);
-        
+    table.Footer td:nth-child(2), table.FooterRed td:nth-child(2) {
+        text-align: right;
     }
     div.MessageBox {
         font-weight: bold;
@@ -921,60 +1057,6 @@
     }
     div#AlertList div.MessageBox {
         box-shadow: 0px 0px 10px #888;
-    }
-    input[type=checkbox] {
-    	display: none;
-    }
-    input[type=checkbox] + label {
-        display: inline-block;
-        min-width: 150px;
-        position: relative;
-        padding: 0px 15px 0px 35px;
-        margin-bottom: 12px;
-        cursor: pointer;
-        user-select: none;
-        vertical-align: text-top;
-    }
-    input[type=checkbox] + label span.Checkmark {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 27px;
-        width: 27px;
-        background-color: #EEE;
-        border: 1px #AAA solid;
-    }
-    input[type=checkbox]:disabled + label {
-        opacity: 0.3;
-    }
-    input[type=checkbox]:enabled:hover + label span.Checkmark {
-        background-color: #CCC;
-    }
-    input[type=checkbox]:enabled:checked + label span.Checkmark, input[type=checkbox]:enabled:indeterminate + label span.Checkmark {
-        background-color: #2196F3;
-        border: 1px #0066CC solid;
-    }
-    input[type=checkbox]:not(:indeterminate) + label span.Checkmark:after {
-        content: "";
-        position: absolute;
-        display: block;
-        left: 9px;
-        top: 5px;
-        width: 5px;
-        height: 10px;
-        border: solid white;
-        border-width: 0 3px 3px 0;
-        transform: rotate(45deg);
-    }
-    input[type=checkbox]:indeterminate + label span.Checkmark:after {
-        content: "";
-        position: absolute;
-        display: block;
-        left: 5px;
-        top: 10px;
-        width: 15px;
-        height: 5px;
-        background-color: #FFF;
     }
     div.FloatBoxBackground {
         position: fixed;
@@ -999,9 +1081,6 @@
     form.FloatBox.Hidden {
     	opacity: 0;
     }
-    .Hidden {
-    	display: none;
-    }
     p.FloatBoxFooter {
         text-align: right;
         margin: 10px -5px 0px 0px;
@@ -1012,39 +1091,58 @@
         color: #ff1919;
         font-weight: bold;
     }
-    table.BorderTable {
-        border: 1px #888 solid;
+    div.TableContainer {
+        border: 2px #888 solid;
         margin-bottom: 12px;
         font-size: 0.9em;
+        background: #FFF;
+        height: 150px;
+        min-height: 150px;
+        max-height: 500px;
+        max-width: 100%;
+        overflow: auto;
+        resize: vertical;
     }
-    table.BorderTable td {
-        padding: 5px;
+    div.TableContainer:hover {
+    	border: 2px #444 solid;
     }
-    table.BorderTable thead {
+    div.TableContainer thead tr td {
         background-color: #CCC;
     }
-    table.BorderTable tbody {
-        display: block;
-        height: 100px;
-        overflow: auto;
+    div.TableContainer tr {
+        min-width: 100%;
     }
-    table.BorderTable tbody tr {
-        display: block;
-        width: 100%;
-    }
-    table.BorderTable tbody tr:nth-child(odd) {
+    div.TableContainer tr:hover {
         background-color: #EEE;
     }
+    div.TableContainer td {
+        padding: 5px;
+    }
+    table#Editor_MappedFoldersOthers_Table {
+    }
+    table#Editor_MappedFoldersOthers_Table td:nth-child(1) {
+        width: 35px;
+        height: 35px;
+        vertical-align: text-top;
+    }
+    table#Editor_MappedFoldersOthers_Table label {
+        padding: 0;
+        margin: 0;
+        min-width: 0;
+    }
+    table#Editor_MappedFoldersOthers_Table td:not(:first-child) {
+        width: calc(50%-30px);
+    }
     @media only screen and (min-width: 600px) {
-		table.EditorTable td {
+		table.EditorTable td:not(table.BorderTable td) {
 			padding-left: 25px;
             padding-right: 25px;
 		}
-		table.EditorTable td:nth-child(1) {
+		table.EditorTable td:nth-child(1):not(table.BorderTable td) {
 			border-right: 3px solid #CCC;
 			color: #666;
 		}
-		table.EditorTable tr:hover:not(.EditorRowErr) td:nth-child(1) {
+		table.EditorTable tr:hover:not(.EditorRowErr) td:nth-child(1):not(table.BorderTable td) {
 			border-right: 3px solid #444;
 			color: #000;
 		}
@@ -1165,21 +1263,38 @@
                         Music
                         <span class="h6span" id="Editor_Input_MappedUserFolders_Music_Notes"></span>
                     </label>
-                    <h6>Tap once to enable read/write access, tap again to map as read-only.</h6>
+                    <h6>Tap once to enable read/write access, tap again to make it read-only.</h6>
                 </td>
             </tr>
             <tr id="EditorRow_MappedFoldersOthers">
                 <td>Mapped Folders (Others)</td>
                 <td>
-                    <input type="Checkbox" name="MappedFoldersOthers" id="Editor_Input_MappedFoldersOthers_1" class="TristateCheckbox" />    
-                    <label for="Editor_Input_MappedFoldersOthers_1">
-                        <span class="Checkmark"></span>
-                        <span class="h6span"><b>Folder #1</b> - <span id="Editor_Input_MappedFoldersOthers_1_Notes"></span></span>
-                        <span class="h6span">Host Folder:</span>
-                        <input type="text" placeholder="Host Folder" />
-                        <span class="h6span">Sandbox Folder:</span>
-                        <input type="text" placeholder="Sandbox Folder" />
-                    </label>
+                    <div class="TableContainer">
+                        <table class="BorderTable" id="Editor_MappedFoldersOthers_Table">
+                            <thead>
+                                <tr>
+                                    <td></td>
+                                    <td>Host Folder</td>
+                                    <td>Sandbox Folder</td>
+                                </tr>
+                            </thead>
+                            <tbody id="Editor_MappedFoldersOthers_Tbody">
+                                <tr>
+                                    <td>
+                                        <input type="Checkbox" name="MappedFoldersOthers" id="Editor_Input_MappedFoldersOthers_0" class="TristateCheckbox" />    
+                                        <label for="Editor_Input_MappedFoldersOthers_0"><span class="Checkmark"></span><span id="Editor_Input_MappedFoldersOthers_0_Notes" style="display:none"></span></label>
+                                    </td>
+                                    <td>
+                                        <input type="text" placeholder="Host Folder" id="Editor_Input_MappedFoldersOthers_0_HostFolder" oninput="javascript:Editor_MappedFoldersOthers_Oninput(0)" onfocusout="javascript:Editor_MappedFoldersOthers_Onfocusout(0)" />
+                                    </td>
+                                    <td>
+                                        <input type="text" placeholder="Sandbox Folder" id="Editor_Input_MappedFoldersOthers_0_SandboxFolder" oninput="javascript:Editor_MappedFoldersOthers_Oninput(0)" onfocusout="javascript:Editor_MappedFoldersOthers_Onfocusout(0)" />
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <h6>Tap once to enable read/write access, tap again to make it read-only.<br />If you do not specify a Sandbox folder, the folder will be mapped to Desktop in Sandbox by default.<br />Note: deselected folders will not appear in the configuration file generated.</h6>
                 </td>
             </tr>
             <tr id="EditorRow_Security">
@@ -1197,7 +1312,7 @@
                 <td>Logon Commands</td>
                 <td>
                     <textarea id="Editor_Input_LogonCommand"></textarea>
-                    <h6>Enter one command on each line.  These commands will automatically be invoked as Sandbox user in the Sandbox after log-on.</h6>
+                    <h6>Put one command on each line.  These commands will automatically be invoked as Sandbox user in the Sandbox after log-on.</h6>
                 </td>
             </tr>
             <tr id="EditorRow_Advanced">
@@ -1279,7 +1394,7 @@
     <form id="FloatBox_Reset" class="FloatBox Hidden YellowBorder" action="javascript:FloatBox_Reset_Submit()">
         <h2>Reset to Template Defaults</h2>
         <p>This will revert all changes and reset all settings to their default values in the <b id="FloatBox_Reset_TemplateName"></b> template.</p>
-        <h6>Mapped Folders will be deselected but not reset.</h6>
+        <h6>This will also empty your Mapped Folders list.</h6>
         <p class="FloatBoxFooter"><input type="submit" value="Reset" /><input type="button" value="Cancel" onclick="javascript:HideFloatBox('Reset')" /></p>
     </form>
     <form id="FloatBox_Open" class="FloatBox Hidden BlueBorder" action="javascript:document.getElementById('FloatBox_Open_Input').click()">
@@ -1293,9 +1408,9 @@
     <form id="FloatBox_OpenWSBWarnings" class="FloatBox Hidden YellowBorder" action="javascript:HideFloatBox('OpenWSBWarnings')">
         <h2>File Warnings</h2>
         <p>We encountered some warnings while opening <b id="FloatBox_OpenWSBWarnings_Filename"></b>:</p>
-        <table class="BorderTable"><tbody id="FloatBox_OpenWSBWarnings_TBody"></tbody></table>
+        <div class="TableContainer"><table id="FloatBox_OpenWSBWarnings_Table"></table></div>
         <h6>Other configuration options in the file have been loaded onto the editor.</h6>
-        <p class="FloatBoxFooter"><input type="submit" value="Close" /></p>
+        <p class="FloatBoxFooter"><input type="submit" value="Continue" /></p>
     </form>
     <div id="AlertList">
     </div>
