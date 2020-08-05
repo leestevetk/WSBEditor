@@ -1,6 +1,6 @@
 # WSBEditor
 
-**[Launch the latest version of WSBEditor](https://leesteve.tk/WSBEditor/WSBEditor-Latest.html).**
+**[Launch the latest version of WSBEditor](https://leestevetk.github.io/WSBEditor/WSBEditor-Latest.html).**
 
 WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/windows/security/threat-protection/windows-sandbox/windows-sandbox-overview) configuration file (*.wsb) editor.
 
@@ -16,8 +16,8 @@ WSBEditor is a web-based [Windows Sandbox](https://docs.microsoft.com/en-us/wind
 
 ## Available Versions
 You may choose between:
-- [WSBEditor-Latest.html](https://leesteve.tk/WSBEditor/WSBEditor-Latest.html) (Latest Release) **(Recommended)**
-- [WSBEditor.html](https://leesteve.tk/WSBEditor/WSBEditor.html) (Nightly builds)
+- [WSBEditor-Latest.html](https://leestevetk.github.io/WSBEditor/WSBEditor-Latest.html) (Latest Release) **(Recommended)**
+- [WSBEditor.html](https://leestevetk.github.io/WSBEditor/WSBEditor.html) (Nightly builds)
 - [Browse older releases](https://github.com/leestevetk/WSBEditor/releases)
 
 ## How to Use
